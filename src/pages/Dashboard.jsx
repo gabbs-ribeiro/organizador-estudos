@@ -29,25 +29,24 @@ export default function Dashboard({ goto }) {
   const c = (s) => ex.filter((x) => x.status === s).length
   return (
     <>
-      <h1>Olá!</h1>
-      <p className="muted">{DIAS[d.getDay()]}, {d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
       {err && <p role="alert" className="err">{err}</p>}
+      <section className="today" aria-label="Atividades de hoje">
+        <h2>Hoje · {DIAS[d.getDay()]}, {d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</h2>
+        <p className="sub">{todayT.length ? `${done} de ${todayT.length} concluídas · ${fmtMin(plannedToday)} planejadas` : 'Nenhuma atividade planejada.'}</p>
+        <div className="bar" aria-hidden="true"><i style={{ width: todayT.length ? `${(done / todayT.length) * 100}%` : '0%' }} /></div>
+        {todayT.length === 0 ? <p className="empty">Adicione uma tarefa em Semana ou ajuste a rotina padrão.</p>
+          : <ul className="list">{todayT.map((t) => <TaskItem big key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>}
+      </section>
       <div className="grid">
-        <div className="card"><span className="muted">Hoje</span><big>{done}/{todayT.length}</big><span className="muted small">concluídas · {fmtMin(plannedToday)} planejadas</span></div>
         <div className="card"><span className="muted">Semana</span><big>{fmtMin(real)}</big><span className="muted small">com tempo informado, de {fmtMin(planned)} planejadas</span></div>
         <div className="card"><span className="muted">Exercícios</span><big>{ex.length}</big><span className="muted small">{c('sozinho')} sozinho · {c('com_ajuda')} com ajuda · {c('revisar')} a revisar</span></div>
       </div>
-      <section>
-        <div className="row between"><h2>Atividades de hoje</h2><button className="ghost" onClick={() => goto('semana')}>Ver semana</button></div>
-        {todayT.length === 0 ? <p className="empty">Nada planejado para hoje. Gere a semana pela rotina ou adicione uma tarefa em Semana.</p>
-          : <ul className="list">{todayT.map((t) => <TaskItem key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>}
-      </section>
       {late.length > 0 && <section>
         <h2>Pendentes e adiadas</h2>
         <p className="muted small">Sem pressão: remarque para outro dia ou marque como não realizada.</p>
         <ul className="list">{late.map((t) => <TaskItem key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>
       </section>}
-      <div className="row"><button className="primary" onClick={() => goto('caderno')}>Registrar exercício</button></div>
+      <div className="row"><button className="ghost" onClick={() => goto('semana')}>Ver semana</button><button className="primary" onClick={() => goto('caderno')}>Registrar exercício</button></div>
     </>
   )
 }
