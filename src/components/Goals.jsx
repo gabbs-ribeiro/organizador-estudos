@@ -29,20 +29,22 @@ export default function Goals({ onError }) {
   const todo = list.filter((g) => !logOf(g)), finished = list.filter((g) => logOf(g))
   const pct = list.length ? Math.round((finished.length / list.length) * 100) : 0
   const rm = (g) => window.confirm(`Remover a meta "${g.title}"? Os registros anteriores continuam no mural.`) && run(() => goals.remove(g.id))
-  const X = (g) => <button className="ghost x" aria-label={`Remover meta ${g.title}`} title="Remover meta" onClick={() => rm(g)}>×</button>
+  const X = (g) => <button className="x" aria-label={`Remover meta ${g.title}`} title="Remover meta" onClick={() => rm(g)}>×</button>
+  const Check = () => <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
   return (
     <section className="card goals" aria-label="Metas">
       <div className="goals-head"><Ring pct={pct} /><div><h2>Metas</h2><span className="muted small">{list.length ? `${finished.length} de ${list.length} feitas hoje · ${pct}%` : 'Sem metas ainda'}</span></div></div>
       {list.length > 0 && <>
         <h3 className="todo-h">A fazer ({todo.length})</h3>
         {todo.length === 0 ? <p className="ok small">Tudo feito por hoje.</p> :
-          <ul className="list">{todo.map((g) => <li key={g.id} className="goal todo"><div className="left"><span className="chk" aria-hidden="true" /><b>{g.title}</b></div>
-            <div className="row"><button className="primary" onClick={() => { setNt(''); setNb(''); setAsk(g) }}>Feito</button>{X(g)}</div></li>)}</ul>}
+          <ul className="list">{todo.map((g) => <li key={g.id} className="goal todo"><div className="left">
+            <button className="chk" aria-label={`Marcar "${g.title}" como feita`} title="Marcar como feita" onClick={() => { setNt(''); setNb(''); setAsk(g) }} />
+            <div className="t"><b>{g.title}</b></div></div>{X(g)}</li>)}</ul>}
         {finished.length > 0 && <>
           <h3 className="todo-h">Concluídas ({finished.length})</h3>
-          <ul className="list">{finished.map((g) => { const log = logOf(g); return <li key={g.id} className="goal done"><div className="left"><span className="chk" aria-hidden="true">✓</span>
-            <div><b>{g.title}</b>{log.note_title && <div className="muted small">Anotação: {log.note_title}</div>}</div></div>
-            <div className="row"><button className="ghost" onClick={() => window.confirm('Desfazer este registro e apagar a anotação?') && run(() => goals.undo(log.id))}>Desfazer</button>{X(g)}</div></li> })}</ul></>}
+          <ul className="list">{finished.map((g) => { const log = logOf(g); return <li key={g.id} className="goal done"><div className="left">
+            <button className="chk" aria-label={`Desfazer "${g.title}"`} title="Desfazer" onClick={() => window.confirm('Desfazer este registro e apagar a anotação?') && run(() => goals.undo(log.id))}><Check /></button>
+            <div className="t"><b>{g.title}</b>{log.note_title && <span className="muted small nt">· {log.note_title}</span>}</div></div>{X(g)}</li> })}</ul></>}
       </>}
       <form className="row addgoal" onSubmit={add}><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nova meta" aria-label="Nova meta" /><button className="ghost">Adicionar</button></form>
       {ask && <div className="overlay"><div className="dialog" role="dialog" aria-modal="true">

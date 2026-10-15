@@ -111,3 +111,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .round:hover{background:#353535}.round.resume{background:#e0a73a;color:#2a1a00}
 .st-pausada{border-color:#e0a73a}.st-pausada .pill{background:#e0a73a;color:#2a1a00}
 @media(max-width:700px){.main-act{width:100%}}
+/* metas: uma linha por meta; a bolinha é o botão de marcar */
+.goal{flex-wrap:nowrap;gap:.6rem;padding:.6rem .6rem .6rem .8rem}
+.goal .left{flex:1;min-width:0}.goal .t{min-width:0;display:flex;align-items:baseline;gap:.5rem;overflow:hidden}
+.goal .t b{font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.goal .nt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button.chk{background:none;padding:0;cursor:pointer;color:transparent;width:26px;height:26px}button.chk:hover{border-color:var(--ac)}
+.goal.done button.chk{color:#06231f}.goal.done button.chk:hover{border-color:var(--ok);opacity:.8}
+.goal .x{background:none;border:0;padding:.1rem .5rem;font-size:1.1rem;line-height:1;color:var(--mut);flex:none}.goal .x:hover{color:var(--err);background:none}
