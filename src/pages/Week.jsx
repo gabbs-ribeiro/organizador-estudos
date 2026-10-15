@@ -1,18 +1,28 @@
 import { useCallback, useEffect, useState } from 'react'
-import { tasks, routines } from '../services/api'
-import { iso, weekStart, addDays, DIAS, TASK_CATS } from '../lib/util'
-import TaskItem from '../components/TaskItem'
+import { tasks, routines, goals } from '../services/api'
+import { iso, today, weekStart, addDays, DIAS, TASK_CATS, STATUS, fmtMin } from '../lib/util'
+
+// Item do mural: título da anotação em destaque; clicar abre a descrição completa.
+function Entry({ title, sub, body, meta, done }) {
+  const head = <><span className="et">{title}</span><span className="muted small">{sub}</span></>
+  return (body || meta) ? (
+    <details className={`entry${done ? ' done' : ''}`}><summary>{head}</summary>
+      <div className="eb">{body ? <p>{body}</p> : <p className="muted">Sem descrição.</p>}{meta && <p className="muted small">{meta}</p>}</div></details>
+  ) : <div className={`entry${done ? ' done' : ''}`}><div className="sum">{head}</div></div>
+}
 
 export default function Week() {
-  const [off, setOff] = useState(0), [list, setList] = useState([]), [rt, setRt] = useState([]), [err, setErr] = useState(''), [msg, setMsg] = useState('')
+  const [off, setOff] = useState(0), [list, setList] = useState([]), [logs, setLogs] = useState([]), [rt, setRt] = useState([]), [err, setErr] = useState(''), [msg, setMsg] = useState('')
   const start = addDays(weekStart(), off * 7)
   const load = useCallback(async () => {
-    try { setList(await tasks.range(iso(start), iso(addDays(start, 6)))); setRt(await routines.list()); setErr('') } catch (e) { setErr(e.message) }
+    try {
+      const a = iso(start), b = iso(addDays(start, 6))
+      const [t, l, r] = await Promise.all([tasks.range(a, b), goals.logs(a, b), routines.list()])
+      setList(t); setLogs(l); setRt(r); setErr('')
+    } catch (e) { setErr(e.message) }
   }, [off]) // eslint-disable-line
   useEffect(() => { load() }, [load])
-  async function generate() {
-    try { await tasks.generateWeek(start, iso); setMsg('Semana gerada pela rotina (sem duplicar o que já existe).'); load() } catch (e) { setErr(e.message) }
-  }
+  async function generate() { try { await tasks.generateWeek(start, iso); setMsg('Semana gerada pela rotina (sem duplicar o que já existe).'); load() } catch (e) { setErr(e.message) } }
   async function add(e) {
     e.preventDefault(); const f = new FormData(e.target)
     if (!f.get('title').trim()) return setErr('Informe um título.')
@@ -31,21 +41,42 @@ export default function Week() {
   const catOpts = Object.entries(TASK_CATS).map(([k, v]) => <option key={k} value={k}>{v}</option>)
   return (
     <>
-      <div className="row between wrap"><h1>Semana</h1>
+      <div className="row between wrap"><h1>Mural da semana</h1>
         <div className="row"><button className="ghost" onClick={() => setOff(off - 1)}>Anterior</button><button className="ghost" onClick={() => setOff(0)}>Atual</button><button className="ghost" onClick={() => setOff(off + 1)}>Próxima</button></div></div>
       <p className="muted">{start.toLocaleDateString('pt-BR')} a {addDays(start, 6).toLocaleDateString('pt-BR')}</p>
       {err && <p role="alert" className="err">{err}</p>}{msg && <p role="status" className="ok">{msg}</p>}
-      <button className="primary" onClick={generate}>Gerar semana pela rotina</button>
-      {DIAS.map((n, i) => { const date = iso(addDays(start, i)), day = list.filter((t) => t.task_date === date)
-        return <section key={i}><h2>{n} <span className="muted small">{date.split('-').reverse().slice(0, 2).join('/')}</span></h2>
-          {day.length ? <ul className="list">{day.map((t) => <TaskItem key={t.id} t={t} onChange={load} onError={setErr} />)}</ul> : <p className="empty">Sem atividades.</p>}</section> })}
-      <section><h2>Nova tarefa</h2>
+      <div className="mural">
+        {DIAS.map((n, i) => {
+          const date = iso(addDays(start, i)), dt = list.filter((t) => t.task_date === date), dl = logs.filter((l) => l.log_date === date)
+          const nDone = dt.filter((t) => t.status === 'concluida').length
+          return (
+            <section key={i} className={`day${date === today() ? ' now' : ''}`}>
+              <h2>{n} <span className="muted small">{date.split('-').reverse().slice(0, 2).join('/')}</span></h2>
+              <div className="blk">
+                <h3>Tarefas <span className="pill">{nDone}/{dt.length}</span></h3>
+                {dt.length === 0 ? <p className="empty">Sem tarefas neste dia.</p> : dt.map((t) =>
+                  <Entry key={t.id} done={t.status === 'concluida'} title={t.note_title || t.title}
+                    sub={`${t.note_title ? t.title + ' · ' : ''}${STATUS[t.status]}`} body={t.note_body}
+                    meta={`${TASK_CATS[t.category] || t.category} · ${fmtMin(t.est_minutes)} previstos${t.actual_minutes != null ? ` · ${fmtMin(t.actual_minutes)} reais` : ''}`} />)}
+              </div>
+              <div className="blk goalblk">
+                <h3>Metas <span className="pill on">{dl.length}</span></h3>
+                {dl.length === 0 ? <p className="empty">Nenhuma meta feita neste dia.</p> : dl.map((l) =>
+                  <Entry key={l.id} done title={l.note_title || l.study_goals?.title || 'Meta'} sub={l.note_title ? l.study_goals?.title : 'Sem título de anotação'} body={l.note_body} />)}
+              </div>
+            </section>)
+        })}
+      </div>
+      <details className="manage"><summary>Gerenciar tarefas e rotina padrão</summary>
+        <button className="primary" onClick={generate}>Gerar esta semana pela rotina</button>
+        <h2>Nova tarefa</h2>
         <form className="form" onSubmit={add}><input name="title" placeholder="Título" required /><input name="date" type="date" defaultValue={iso(start)} required />
-          <select name="category">{catOpts}</select><input name="min" type="number" min="0" placeholder="Minutos" defaultValue="30" /><input name="desc" placeholder="Descrição (opcional)" /><button className="primary">Adicionar tarefa</button></form></section>
-      <section><h2>Rotina padrão</h2><p className="muted small">Modelo usado para gerar semanas. Alterar aqui não muda tarefas já geradas.</p>
+          <select name="category">{catOpts}</select><input name="min" type="number" min="0" placeholder="Minutos" defaultValue="30" /><input name="desc" placeholder="Descrição (opcional)" /><button className="primary">Adicionar tarefa</button></form>
+        <h2>Rotina padrão</h2><p className="muted small">Modelo usado para gerar semanas. Alterar aqui não muda tarefas já geradas.</p>
         <ul className="list">{rt.map((r) => <li key={r.id} className="task"><div><b>{DIAS[r.weekday]}: {r.title}</b><span className="muted"> {r.minutes} min</span>{r.description && <p className="muted small">{r.description}</p>}</div>
           <div className="row"><button className="ghost" onClick={() => editRt(r)}>Editar</button><button className="ghost" onClick={() => delRt(r)}>Remover</button></div></li>)}</ul>
-        <form className="form" onSubmit={addRt}><select name="wd">{DIAS.map((n, i) => <option key={i} value={i}>{n}</option>)}</select><input name="title" placeholder="Atividade" required /><select name="category">{catOpts}</select><input name="min" type="number" min="0" defaultValue="60" /><button className="primary">Adicionar à rotina</button></form></section>
+        <form className="form" onSubmit={addRt}><select name="wd">{DIAS.map((n, i) => <option key={i} value={i}>{n}</option>)}</select><input name="title" placeholder="Atividade" required /><select name="category">{catOpts}</select><input name="min" type="number" min="0" defaultValue="60" /><button className="primary">Adicionar à rotina</button></form>
+      </details>
     </>
   )
 }

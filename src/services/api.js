@@ -32,3 +32,11 @@ export const attempts = {
   add: (a) => supabase.from('exercise_attempts').insert(a).then(ok),
   remove: (id) => supabase.from('exercise_attempts').delete().eq('id', id).then(ok),
 }
+export const goals = {
+  async list() { await supabase.rpc('seed_default_goals').then(ok); return supabase.from('study_goals').select('*').eq('active', true).order('created_at').then(ok) },
+  add: (title) => supabase.from('study_goals').insert({ title }).then(ok),
+  remove: (id) => supabase.from('study_goals').update({ active: false }).eq('id', id).then(ok),
+  logs: (a, b) => supabase.from('goal_logs').select('*, study_goals(title)').gte('log_date', a).lte('log_date', b).order('created_at').then(ok),
+  done: (l) => supabase.from('goal_logs').insert(l).then(ok),
+  undo: (id) => supabase.from('goal_logs').delete().eq('id', id).then(ok),
+}

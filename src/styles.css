@@ -75,3 +75,24 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 .tm{font-weight:500}.tm.on{color:var(--ok)}.tm.late{color:var(--err)}
 @media(max-width:700px){.sec input[type=date]{flex:1.4 1 0}}
+/* anotações, metas e mural */
+.note-t{color:var(--acd);margin:.3rem 0 0}
+.goals{margin:1rem 0}.goals h2{margin:0 0 .7rem}
+.goal{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;background:var(--card2);border-radius:18px;padding:.8rem 1rem}
+.goal.done b{color:var(--mut)}.goal .x{padding:.3rem .8rem;font-size:1.1rem;line-height:1}
+.addgoal{margin-top:.8rem}.addgoal input{flex:1}
+.pill.on{background:var(--ac);color:var(--on-ac)}
+.dialog{max-height:90vh;overflow:auto}.dialog textarea{width:100%}
+.mural{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:.9rem;margin-top:1rem}
+.day{background:var(--card);border-radius:var(--r);padding:1.2rem;border:2px solid transparent}.day.now{border-color:var(--ac)}
+.day h2{margin:0 0 .6rem;font-size:1.3rem;font-weight:400}
+.blk h3{display:flex;align-items:center;gap:.5rem;margin:0 0 .4rem;font-size:1rem;font-weight:500}
+.goalblk{margin-top:1rem;padding:.8rem;border-radius:20px;background:rgba(127,109,242,.16)}
+.entry{background:var(--card2);border-radius:16px;margin:.4rem 0;padding:.6rem .9rem;border-left:4px solid transparent}.entry.done{border-left-color:var(--ac)}
+.entry summary,.entry .sum{display:flex;flex-direction:column;cursor:pointer;list-style:none}.entry summary::-webkit-details-marker{display:none}
+.entry .sum{cursor:default}.et{font-weight:500}.eb p{white-space:pre-wrap;margin:.5rem 0 0}
+.manage{margin-top:2rem;background:var(--card);border-radius:var(--r);padding:1rem 1.2rem}.manage summary{cursor:pointer;font-size:1.1rem}
+@media(max-width:700px){
+  .sec{flex-wrap:wrap}.sec>*{flex:1 1 0;min-width:96px}.sec input[type=date]{flex:1.4 1 0;min-width:130px}
+  .mural{grid-template-columns:1fr}
+}

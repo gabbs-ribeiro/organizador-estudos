@@ -45,12 +45,30 @@ create table if not exists exercise_attempts (
 alter table study_routines add column if not exists start_time time;
 alter table study_tasks add column if not exists start_time time;
 
+alter table study_tasks add column if not exists note_title text;
+alter table study_tasks add column if not exists note_body text;
+
+-- Metas diárias: aparecem todo dia; cada "Feito" vira um registro (goal_logs) com anotação.
+create table if not exists study_goals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  title text not null, active boolean not null default true,
+  created_at timestamptz not null default now());
+create table if not exists goal_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  goal_id uuid not null references study_goals(id) on delete cascade,
+  log_date date not null default current_date, note_title text, note_body text,
+  created_at timestamptz not null default now(),
+  unique (goal_id, log_date));
+create index if not exists idx_logs_user_date on goal_logs(user_id, log_date);
+
 create index if not exists idx_tasks_user_date on study_tasks(user_id, task_date);
 create index if not exists idx_ex_user_status on exercise_notes(user_id, status);
 create index if not exists idx_att_exercise on exercise_attempts(exercise_id);
 
 do $$ declare t text; begin
-  foreach t in array array['study_routines','study_tasks','exercise_notes','exercise_attempts'] loop
+  foreach t in array array['study_routines','study_tasks','exercise_notes','exercise_attempts','study_goals','goal_logs'] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists own_rows on %I', t);
     execute format('create policy own_rows on %I for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())', t);
@@ -79,4 +97,10 @@ create or replace function seed_default_routine() returns void language sql as $
     (0,'Descanso','descanso',15,null::time,'Descanso; planejamento opcional de 15 min. Faculdade conforme necessidade')
   ) v(a,b,c,d,e,f)
   where not exists (select 1 from study_routines where user_id = auth.uid());
+$$;
+
+-- Meta padrão (só se o usuário nunca teve metas; metas removidas ficam inativas e não voltam).
+create or replace function seed_default_goals() returns void language sql as $$
+  insert into study_goals(title) select 'Exercício LeetCode'
+  where not exists (select 1 from study_goals where user_id = auth.uid());
 $$;
