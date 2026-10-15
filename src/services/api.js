@@ -1,17 +1,20 @@
 import { supabase } from '../lib/supabase'
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data }
 export const tasks = {
-  range: (a, b) => supabase.from('study_tasks').select('*').gte('task_date', a).lte('task_date', b).order('task_date').order('created_at').then(ok),
+  range: (a, b) => supabase.from('study_tasks').select('*').gte('task_date', a).lte('task_date', b).order('task_date').order('start_time', { nullsFirst: false }).order('created_at').then(ok),
   add: (t) => supabase.from('study_tasks').insert(t).then(ok),
   update: (id, p) => supabase.from('study_tasks').update(p).eq('id', id).then(ok),
   remove: (id) => supabase.from('study_tasks').delete().eq('id', id).then(ok),
-  // gera a semana a partir da rotina; o índice único (user, rotina, data) ignora o que já existe
-  async generateWeek(start, iso) {
+  // gera tarefas a partir da rotina; o índice único (user, rotina, data) ignora o que já existe
+  async generateDays(start, iso, onlyDate) {
     await supabase.rpc('seed_default_routine').then(ok)
-    const routines = await supabase.from('study_routines').select('*').then(ok)
-    const rows = routines.map((r) => ({ routine_id: r.id, task_date: iso(new Date(start.getTime() + r.weekday * 864e5)), title: r.title, category: r.category, est_minutes: r.minutes, description: r.description }))
+    const rs = await supabase.from('study_routines').select('*').then(ok)
+    const rows = rs.map((r) => ({ routine_id: r.id, task_date: iso(new Date(start.getTime() + r.weekday * 864e5)), title: r.title, category: r.category, est_minutes: r.minutes, start_time: r.start_time, description: r.description }))
+      .filter((r) => !onlyDate || r.task_date === onlyDate)
+    if (!rows.length) return []
     return supabase.from('study_tasks').upsert(rows, { onConflict: 'user_id,routine_id,task_date', ignoreDuplicates: true }).then(ok)
   },
+  generateWeek(start, iso) { return this.generateDays(start, iso) },
 }
 export const routines = {
   list: () => supabase.from('study_routines').select('*').order('weekday').then(ok),

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { tasks, routines } from '../services/api'
-import { iso, weekStart, addDays, DIAS, CATS } from '../lib/util'
+import { iso, weekStart, addDays, DIAS, TASK_CATS } from '../lib/util'
 import TaskItem from '../components/TaskItem'
 
 export default function Week() {
@@ -28,7 +28,7 @@ export default function Week() {
     e.preventDefault(); const f = new FormData(e.target)
     try { await routines.add({ weekday: +f.get('wd'), title: f.get('title').trim(), category: f.get('category'), minutes: +f.get('min') || 0 }); e.target.reset(); load() } catch (x) { setErr(x.message) }
   }
-  const catOpts = Object.entries(CATS).map(([k, v]) => <option key={k} value={k}>{v}</option>)
+  const catOpts = Object.entries(TASK_CATS).map(([k, v]) => <option key={k} value={k}>{v}</option>)
   return (
     <>
       <div className="row between wrap"><h1>Semana</h1>

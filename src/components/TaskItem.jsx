@@ -1,4 +1,4 @@
-import { STATUS, CATS, fmtMin } from '../lib/util'
+import { STATUS, TASK_CATS, fmtMin } from '../lib/util'
 import { tasks } from '../services/api'
 // Concluir pergunta o tempo real (sugere o estimado; vazio = não contabiliza).
 export default function TaskItem({ t, onChange, onError }) {
@@ -22,7 +22,7 @@ export default function TaskItem({ t, onChange, onError }) {
   }
   return (
     <li className={`task st-${t.status}`}>
-      <div><b>{t.title}</b><span className="muted"> {CATS[t.category] || t.category} · {fmtMin(t.est_minutes)} previstos{t.actual_minutes != null && ` · ${fmtMin(t.actual_minutes)} reais`}</span>
+      <div><b>{t.title}</b><span className="muted"> {t.start_time && `${t.start_time.slice(0, 5)} · `}{TASK_CATS[t.category] || t.category} · {fmtMin(t.est_minutes)} previstos{t.actual_minutes != null && ` · ${fmtMin(t.actual_minutes)} reais`}</span>
         {t.description && <p className="muted small">{t.description}</p>}</div>
       <div className="row wrap">
         <select aria-label="Status" value={t.status} onChange={(e) => setStatus(e.target.value)}>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>

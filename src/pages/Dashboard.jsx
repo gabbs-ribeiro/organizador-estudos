@@ -8,7 +8,11 @@ export default function Dashboard({ goto }) {
   const load = useCallback(async () => {
     try {
       const s = weekStart()
-      const [w, e] = await Promise.all([tasks.range(iso(addDays(s, -14)), iso(addDays(s, 6))), exercises.list()])
+      const r = () => tasks.range(iso(addDays(s, -14)), iso(addDays(s, 6)))
+      let w = await r()
+      // ao abrir, se hoje não tem nada, gera as tarefas do dia pela rotina (sem duplicar)
+      if (!w.some((t) => t.task_date === today())) { await tasks.generateDays(s, iso, today()); w = await r() }
+      const e = await exercises.list()
       setWeek(w); setEx(e); setErr('')
     } catch (e) { setErr(e.message) } finally { setLoading(false) }
   }, [])

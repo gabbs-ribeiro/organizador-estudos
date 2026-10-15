@@ -7,7 +7,7 @@ create table if not exists study_routines (
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   weekday smallint not null check (weekday between 0 and 6), -- 0=domingo
   title text not null, category text not null default 'java',
-  minutes int not null default 60 check (minutes >= 0), description text,
+  minutes int not null default 60 check (minutes >= 0), description text, start_time time,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 
 create table if not exists study_tasks (
@@ -18,7 +18,7 @@ create table if not exists study_tasks (
   est_minutes int not null default 30 check (est_minutes >= 0),
   actual_minutes int check (actual_minutes is null or actual_minutes >= 0), -- null = não informado
   status text not null default 'pendente' check (status in ('pendente','em_andamento','concluida','adiada','nao_realizada')),
-  description text,
+  description text, start_time time,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
   unique (user_id, routine_id, task_date)); -- impede duplicatas ao gerar a semana
 
@@ -42,6 +42,9 @@ create table if not exists exercise_attempts (
   content text, errors text, help_type text, result text, clearer text,
   created_at timestamptz not null default now());
 
+alter table study_routines add column if not exists start_time time;
+alter table study_tasks add column if not exists start_time time;
+
 create index if not exists idx_tasks_user_date on study_tasks(user_id, task_date);
 create index if not exists idx_ex_user_status on exercise_notes(user_id, status);
 create index if not exists idx_att_exercise on exercise_attempts(exercise_id);
@@ -60,14 +63,20 @@ end $$;
 
 -- Rotina padrão (só insere se o usuário ainda não tiver rotina). Chamada pelo app.
 create or replace function seed_default_routine() returns void language sql as $$
-  insert into study_routines(weekday,title,category,minutes,description)
+  insert into study_routines(weekday,title,category,minutes,start_time,description)
   select * from (values
-    (1,'Java','java',60,'Revisar, conceito novo se preciso, exercícios, registrar dúvidas e erros'),
-    (2,'LeetCode (Easy)','algoritmos',45,'Tentar sozinho antes de pedir ajuda; registrar raciocínio'),
-    (3,'Java: consolidação','java',60,'Revisar, praticar o que não está firme, revisitar erros'),
-    (4,'Projeto prático','java',60,'Implementar/melhorar o projeto; registrar problemas'),
-    (5,'Dia flexível','faculdade',30,'Faculdade, inglês, pendências ou descanso. Nada obrigatório.'),
-    (6,'Sessão de sábado','algoritmos',120,'2º LeetCode, revisão, Beecrowd (meta: 1/semana, flexível) ou projeto')
-  ) v(a,b,c,d,e)
+    (1,'Faculdade','faculdade',60,'18:30'::time,'18h30–19h30 · matérias da graduação, atividades, trabalhos e provas'),
+    (2,'Faculdade','faculdade',60,'18:30'::time,'18h30–19h30 · matérias da graduação, atividades, trabalhos e provas'),
+    (3,'Faculdade','faculdade',60,'18:30'::time,'18h30–19h30 · matérias da graduação, atividades, trabalhos e provas'),
+    (4,'Faculdade','faculdade',60,'18:30'::time,'18h30–19h30 · matérias da graduação, atividades, trabalhos e provas'),
+    (5,'Faculdade','faculdade',60,'18:30'::time,'18h30–19h30 · matérias da graduação, atividades, trabalhos e provas'),
+    (1,'Java','java',135,'19:30'::time,'19h30–21h45 · até 2h15 de Java'),
+    (2,'LeetCode','algoritmos',135,'19:30'::time,'19h30–21h45 · até 2h15. Tentar sozinho antes de pedir ajuda'),
+    (3,'Revisão e prática de Java','java',135,'19:30'::time,'19h30–21h45 · até 2h15 de revisão e prática'),
+    (4,'Projeto prático','java',135,'19:30'::time,'19h30–21h45 · até 2h15 no projeto'),
+    (5,'Flexível: inglês, pendências ou descanso','ingles',0,null::time,'Sem horário fixo. Nada obrigatório.'),
+    (6,'Sessão de sábado','algoritmos',120,null::time,'2h: LeetCode, Beecrowd (meta: 1 por semana), revisão ou projeto. Faculdade conforme necessidade'),
+    (0,'Descanso','descanso',15,null::time,'Descanso; planejamento opcional de 15 min. Faculdade conforme necessidade')
+  ) v(a,b,c,d,e,f)
   where not exists (select 1 from study_routines where user_id = auth.uid());
 $$;
