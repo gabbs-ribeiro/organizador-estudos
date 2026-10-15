@@ -73,3 +73,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .cta{width:100%;padding:.85rem 1rem;font-size:1.05rem}
   .sec{width:100%;flex-wrap:nowrap;gap:.4rem}.sec>*{flex:1 1 0;min-width:0;font-size:.82rem;padding:.45rem .6rem;text-align:center}
 }
+.tm{font-weight:500}.tm.on{color:var(--ok)}.tm.late{color:var(--err)}
+@media(max-width:700px){.sec input[type=date]{flex:1.4 1 0}}
