@@ -1,0 +1,11 @@
+export const iso = (d) => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10) }
+export const today = () => iso(new Date())
+export const weekStart = (d = new Date()) => { const x = new Date(d); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return x } // domingo
+export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
+export const DIAS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+export const STATUS = { pendente:'Pendente', em_andamento:'Em andamento', concluida:'Concluída', adiada:'Adiada', nao_realizada:'Não realizada' }
+export const CATS = { java:'Java', logica:'Lógica', algoritmos:'Algoritmos', estruturas:'Estruturas de dados', sql:'SQL', spring:'Spring Boot', git:'Git', ingles:'Inglês', faculdade:'Faculdade' }
+export const PLAT = { leetcode:'LeetCode', beecrowd:'Beecrowd', faculdade:'Faculdade', projeto:'Projeto próprio', outro:'Outro' }
+export const DIF = { facil:'Fácil', medio:'Médio', dificil:'Difícil' }
+export const EXST = { tentando:'Ainda tentando', com_ajuda:'Resolvido com ajuda', sozinho:'Resolvido sozinho', revisar:'Revisar novamente' }
+export const fmtMin = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`
