@@ -14,7 +14,7 @@ export default function TaskItem({ t, onChange, onError, big }) {
     setAsk(null)
   }
   const other = (v) => v && patch({ status: v, actual_minutes: null })
-  const move = (date) => date && patch({ task_date: date, status: 'pendente', actual_minutes: null })
+  const move = (date) => date && date !== t.task_date && patch({ task_date: date, status: 'pendente', actual_minutes: null })
   async function del() {
     if (!window.confirm(`Excluir "${t.title}"?`)) return
     try { await tasks.remove(t.id); onChange() } catch (e) { onError(e.message) }
@@ -25,17 +25,19 @@ export default function TaskItem({ t, onChange, onError, big }) {
       <div><b>{t.title}</b> <span className="pill">{STATUS[t.status]}</span>
         <div className="muted">{t.start_time && `${t.start_time.slice(0, 5)} · `}{TASK_CATS[t.category] || t.category} · {fmtMin(t.est_minutes)} previstos{t.actual_minutes != null && ` · ${fmtMin(t.actual_minutes)} reais`}</div>
         {t.description && <p className="muted small">{t.description}</p>}</div>
-      <div className="row wrap">
-        {t.status === 'em_andamento' ? <button className="primary" onClick={() => open('finish')}>Finalizar</button>
-          : !done && <button className="primary" onClick={() => open('start')}>Iniciar</button>}
+      <div className="actions">
+        {t.status === 'em_andamento' ? <button className="primary cta" onClick={() => open('finish')}>Finalizar</button>
+          : !done && <button className="primary cta" onClick={() => open('start')}>Iniciar</button>}
+        <div className="sec">
         <select aria-label="Outras ações" value="" onChange={(e) => other(e.target.value)}>
           <option value="">Outras ações</option>
           {done ? <option value="pendente">Reabrir</option> : <>
             <option value="adiada">Adiar</option><option value="nao_realizada">Não realizada</option>
             {t.status !== 'pendente' && <option value="pendente">Voltar para pendente</option>}</>}
         </select>
-        <input type="date" aria-label="Remarcar para outro dia" title="Remarcar para outro dia" value="" onChange={(e) => move(e.target.value)} />
+        <input type="date" aria-label="Remarcar para outro dia" title="Remarcar para outro dia" value={t.task_date} onChange={(e) => move(e.target.value)} />
         <button className="ghost" onClick={del}>Excluir</button>
+        </div>
       </div>
       {ask && <div className="overlay" onClick={() => setAsk(null)}>
         <div className="dialog" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>

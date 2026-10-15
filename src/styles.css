@@ -59,3 +59,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .nav button{flex:1;text-align:center;padding:.7rem .4rem}.brand{display:none}.nav .out{margin-top:0}
   h1{font-size:2rem}big{font-size:2.5rem}
 }
+/* ações da tarefa: Iniciar/Finalizar em destaque */
+.actions{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}.sec{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.cta{font-weight:600;padding:.7rem 1.7rem;box-shadow:0 0 0 4px rgba(110,168,255,.2)}
+.task.big select,.task.big input[type=date]{font-size:.95rem;padding:.5rem .9rem}
+@media(max-width:700px){
+  .today{padding:1.7rem 1.5rem;border-radius:30px}
+  .today h2{font-size:1.5rem}.today .sub{font-size:.95rem;margin-bottom:.9rem}.bar{margin-bottom:1.3rem}
+  .today .list{gap:.7rem}
+  .task.big{padding:.95rem 1rem;border-radius:22px;font-size:.92rem}
+  .task.big b{font-size:1.2rem}.task.big .small{font-size:.8rem}
+  .actions{width:100%;flex-direction:column;align-items:stretch;gap:.6rem}
+  .cta{width:100%;padding:.85rem 1rem;font-size:1.05rem}
+  .sec{width:100%;flex-wrap:nowrap;gap:.4rem}.sec>*{flex:1 1 0;min-width:0;font-size:.82rem;padding:.45rem .6rem;text-align:center}
+}
