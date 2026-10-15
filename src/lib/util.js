@@ -3,7 +3,7 @@ export const today = () => iso(new Date())
 export const weekStart = (d = new Date()) => { const x = new Date(d); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return x } // domingo
 export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
 export const DIAS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
-export const STATUS = { pendente:'Pendente', em_andamento:'Em andamento', concluida:'Concluída', adiada:'Adiada', nao_realizada:'Não realizada' }
+export const STATUS = { pendente:'Pendente', em_andamento:'Em andamento', pausada:'Pausada', concluida:'Concluída', adiada:'Adiada', nao_realizada:'Não realizada' }
 export const CATS = { java:'Java', logica:'Lógica', algoritmos:'Algoritmos', estruturas:'Estruturas de dados', sql:'SQL', spring:'Spring Boot', git:'Git', ingles:'Inglês', faculdade:'Faculdade' }
 export const TASK_CATS = { ...CATS, descanso:'Descanso' }
 export const PLAT = { leetcode:'LeetCode', beecrowd:'Beecrowd', faculdade:'Faculdade', projeto:'Projeto próprio', outro:'Outro' }

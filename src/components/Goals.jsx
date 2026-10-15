@@ -2,7 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { goals } from '../services/api'
 import { iso } from '../lib/util'
 
-// Metas diárias: aparecem todo dia. "Feito" abre confirmação com título e descrição da anotação.
+// Anel de progresso pequeno; em 100% vira um V verde.
+function Ring({ pct }) {
+  if (pct >= 100) return <svg className="ring" viewBox="0 0 44 44" role="img" aria-label="Todas as metas concluídas"><circle cx="22" cy="22" r="20" fill="var(--ok)" /><path d="M13 23l6 6 12-13" fill="none" stroke="#06231f" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  return (
+    <svg className="ring" viewBox="0 0 44 44" role="img" aria-label={`${pct}% das metas concluídas`}>
+      <circle cx="22" cy="22" r="18" fill="none" stroke="var(--card2)" strokeWidth="6" />
+      {pct > 0 && <circle className="arc" cx="22" cy="22" r="18" fill="none" stroke="var(--ac)" strokeWidth="6" strokeLinecap="round" pathLength="100" strokeDasharray={`${pct} 100`} transform="rotate(-90 22 22)" />}
+    </svg>
+  )
+}
+
+// Metas: lista "a fazer" / "concluídas" de hoje. "Feito" abre confirmação com título e descrição da anotação.
 export default function Goals({ onError }) {
   const [list, setList] = useState([]), [logs, setLogs] = useState([]), [ask, setAsk] = useState(null)
   const [nt, setNt] = useState(''), [nb, setNb] = useState(''), [title, setTitle] = useState('')
@@ -14,20 +25,26 @@ export default function Goals({ onError }) {
   const run = async (fn) => { try { await fn(); load() } catch (e) { onError(e.message) } }
   const yes = () => { const g = ask; setAsk(null); run(() => goals.done({ goal_id: g.id, log_date: day, note_title: nt.trim() || null, note_body: nb.trim() || null })) }
   const add = (e) => { e.preventDefault(); if (!title.trim()) return; run(() => goals.add(title.trim())); setTitle('') }
+  const logOf = (g) => logs.find((l) => l.goal_id === g.id)
+  const todo = list.filter((g) => !logOf(g)), finished = list.filter((g) => logOf(g))
+  const pct = list.length ? Math.round((finished.length / list.length) * 100) : 0
+  const rm = (g) => window.confirm(`Remover a meta "${g.title}"? Os registros anteriores continuam no mural.`) && run(() => goals.remove(g.id))
+  const X = (g) => <button className="ghost x" aria-label={`Remover meta ${g.title}`} title="Remover meta" onClick={() => rm(g)}>×</button>
   return (
-    <section className="card goals" aria-label="Metas de todo dia">
-      <h2>Metas de todo dia</h2>
-      {list.length === 0 ? <p className="empty">Nenhuma meta. Adicione uma abaixo.</p> :
-        <ul className="list">{list.map((g) => { const log = logs.find((l) => l.goal_id === g.id); return (
-          <li key={g.id} className={`goal${log ? ' done' : ''}`}>
-            <div><b>{g.title}</b>{log?.note_title && <div className="muted small">Anotação: {log.note_title}</div>}</div>
-            <div className="row">
-              {log ? <><span className="pill on">Feito</span><button className="ghost" onClick={() => window.confirm('Desfazer este registro e apagar a anotação?') && run(() => goals.undo(log.id))}>Desfazer</button></>
-                : <button className="primary" onClick={() => { setNt(''); setNb(''); setAsk(g) }}>Feito</button>}
-              <button className="ghost x" aria-label={`Remover meta ${g.title}`} title="Remover meta" onClick={() => window.confirm(`Remover a meta "${g.title}"? Os registros anteriores continuam no mural.`) && run(() => goals.remove(g.id))}>×</button>
-            </div>
-          </li>) })}</ul>}
-      <form className="row addgoal" onSubmit={add}><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nova meta diária" aria-label="Nova meta diária" /><button className="ghost">Adicionar</button></form>
+    <section className="card goals" aria-label="Metas">
+      <div className="goals-head"><Ring pct={pct} /><div><h2>Metas</h2><span className="muted small">{list.length ? `${finished.length} de ${list.length} feitas hoje · ${pct}%` : 'Sem metas ainda'}</span></div></div>
+      {list.length > 0 && <>
+        <h3 className="todo-h">A fazer ({todo.length})</h3>
+        {todo.length === 0 ? <p className="ok small">Tudo feito por hoje.</p> :
+          <ul className="list">{todo.map((g) => <li key={g.id} className="goal todo"><div className="left"><span className="chk" aria-hidden="true" /><b>{g.title}</b></div>
+            <div className="row"><button className="primary" onClick={() => { setNt(''); setNb(''); setAsk(g) }}>Feito</button>{X(g)}</div></li>)}</ul>}
+        {finished.length > 0 && <>
+          <h3 className="todo-h">Concluídas ({finished.length})</h3>
+          <ul className="list">{finished.map((g) => { const log = logOf(g); return <li key={g.id} className="goal done"><div className="left"><span className="chk" aria-hidden="true">✓</span>
+            <div><b>{g.title}</b>{log.note_title && <div className="muted small">Anotação: {log.note_title}</div>}</div></div>
+            <div className="row"><button className="ghost" onClick={() => window.confirm('Desfazer este registro e apagar a anotação?') && run(() => goals.undo(log.id))}>Desfazer</button>{X(g)}</div></li> })}</ul></>}
+      </>}
+      <form className="row addgoal" onSubmit={add}><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nova meta" aria-label="Nova meta" /><button className="ghost">Adicionar</button></form>
       {ask && <div className="overlay"><div className="dialog" role="dialog" aria-modal="true">
         <h3>Marcar como feito?</h3><p className="muted">{ask.title}</p>
         <label>Título da anotação<input value={nt} onChange={(e) => setNt(e.target.value)} placeholder="Ex.: Two Sum" /></label>

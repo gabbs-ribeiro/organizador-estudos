@@ -47,6 +47,12 @@ alter table study_tasks add column if not exists start_time time;
 
 alter table study_tasks add column if not exists note_title text;
 alter table study_tasks add column if not exists note_body text;
+-- Cronômetro com pausa: tempo em atividade e tempo pausado são guardados separados.
+alter table study_tasks add column if not exists work_seconds int not null default 0;
+alter table study_tasks add column if not exists paused_seconds int not null default 0;
+alter table study_tasks add column if not exists segment_started_at timestamptz;
+alter table study_tasks drop constraint if exists study_tasks_status_check;
+alter table study_tasks add constraint study_tasks_status_check check (status in ('pendente','em_andamento','pausada','concluida','adiada','nao_realizada'));
 
 -- Metas diárias: aparecem todo dia; cada "Feito" vira um registro (goal_logs) com anotação.
 create table if not exists study_goals (

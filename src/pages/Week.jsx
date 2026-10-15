@@ -57,7 +57,7 @@ export default function Week() {
                 {dt.length === 0 ? <p className="empty">Sem tarefas neste dia.</p> : dt.map((t) =>
                   <Entry key={t.id} done={t.status === 'concluida'} title={t.note_title || t.title}
                     sub={`${t.note_title ? t.title + ' · ' : ''}${STATUS[t.status]}`} body={t.note_body}
-                    meta={`${TASK_CATS[t.category] || t.category} · ${fmtMin(t.est_minutes)} previstos${t.actual_minutes != null ? ` · ${fmtMin(t.actual_minutes)} reais` : ''}`} />)}
+                    meta={`${TASK_CATS[t.category] || t.category} · ${fmtMin(t.est_minutes)} previstos${t.actual_minutes != null ? ` · ${fmtMin(t.actual_minutes)} reais` : ''}${t.paused_seconds >= 60 ? ` · ${Math.round(t.paused_seconds / 60)} min pausado` : ''}`} />)}
               </div>
               <div className="blk goalblk">
                 <h3>Metas <span className="pill on">{dl.length}</span></h3>

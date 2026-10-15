@@ -22,7 +22,7 @@ export default function Dashboard({ goto }) {
   const todayT = week.filter((t) => t.task_date === t0)
   const done = todayT.filter((t) => t.status === 'concluida').length
   const plannedToday = todayT.reduce((a, t) => a + t.est_minutes, 0)
-  const late = week.filter((t) => t.task_date < t0 && ['pendente', 'em_andamento', 'adiada'].includes(t.status))
+  const late = week.filter((t) => t.task_date < t0 && ['pendente', 'em_andamento', 'pausada', 'adiada'].includes(t.status))
   return (
     <>
       {err && <p role="alert" className="err">{err}</p>}

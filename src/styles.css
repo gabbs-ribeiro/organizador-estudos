@@ -96,3 +96,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .sec{flex-wrap:wrap}.sec>*{flex:1 1 0;min-width:96px}.sec input[type=date]{flex:1.4 1 0;min-width:130px}
   .mural{grid-template-columns:1fr}
 }
+/* metas como to-do list */
+.goals-head{display:flex;align-items:center;gap:.8rem;margin-bottom:.4rem}.goals-head h2{margin:0;line-height:1.1}
+.ring{width:46px;height:46px;flex:none}.ring .arc{transition:stroke-dasharray .4s}
+.todo-h{margin:1rem 0 .45rem;font-size:.95rem;font-weight:500;color:var(--mut)}
+.goal .left{display:flex;gap:.7rem;align-items:center}
+.goal.todo{background:var(--card2)}.goal.done{background:transparent;border:1px dashed var(--line)}
+.goal.done b{text-decoration:line-through;color:var(--mut)}
+.chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--mut);flex:none;display:grid;place-items:center;font-size:.8rem;font-weight:700}
+.goal.done .chk{background:var(--ok);border-color:var(--ok);color:#06231f}
+/* pausar / retomar */
+.main-act{display:flex;gap:.5rem;align-items:center}.main-act .cta{flex:1}
+.round{width:48px;height:48px;border-radius:50%;padding:0;display:grid;place-items:center;flex:none;background:var(--card2);color:var(--ink);border:0}
+.round:hover{background:#353535}.round.resume{background:#e0a73a;color:#2a1a00}
+.st-pausada{border-color:#e0a73a}.st-pausada .pill{background:#e0a73a;color:#2a1a00}
+@media(max-width:700px){.main-act{width:100%}}
