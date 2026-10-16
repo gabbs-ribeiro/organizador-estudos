@@ -127,3 +127,22 @@ button.entry.done{border-left-color:var(--ac)}button.entry:hover{background:#333
 .sheet h2{font-size:1.9rem;font-weight:300;line-height:1.2;margin:1.1rem 0 .3rem;letter-spacing:-.02em}
 .sheet .body{white-space:pre-wrap;font-size:1.08rem;line-height:1.75;margin:1.2rem 0;overflow-wrap:anywhere}
 @media(max-width:700px){.viewer{padding:0}.sheet{height:100%;max-height:100%;border-radius:0;padding:1.2rem}.sheet h2{font-size:1.6rem}}
+/* comentários // em verde (como em editor de código) */
+.cm{color:var(--ok)}
+.notearea{position:relative}
+.nbd,.notearea textarea{font:.95rem/1.55 ui-monospace,Menlo,Consolas,monospace;padding:.6rem .9rem;border:2px solid transparent;border-radius:18px;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;box-sizing:border-box;margin:0}
+.nbd{position:absolute;inset:0;background:var(--card2);color:var(--ink);overflow:hidden;pointer-events:none}
+.notearea textarea{position:relative;z-index:1;display:block;width:100%;background:transparent;color:transparent;caret-color:var(--ink);resize:vertical}
+.notearea textarea::placeholder{color:var(--mut)}
+.dialog label .small{color:var(--mut)}
+/* adicionar ao caderno */
+.pick .sel{outline:2px solid var(--ok);color:var(--ok)}.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem;align-items:center}
+.chip{border:0;background:var(--card2);color:var(--ink);border-radius:999px;padding:.4rem 1rem}.chip.on{background:var(--ac);color:var(--on-ac)}
+.chips .grow{flex:1 1 100%}.chips .grow input{flex:1}
+.dialog.wide{max-width:640px}
+/* caderno: matérias como pastas */
+.folder{background:var(--card);border-radius:var(--r);margin:.7rem 0;overflow:hidden;border:2px solid transparent}.folder.open{border-color:var(--ac)}
+.fh{display:flex;align-items:center;gap:.8rem;width:100%;padding:1.1rem 1.3rem;background:none;border:0;color:var(--ink);font:inherit;font-size:1.35rem;text-align:left;cursor:pointer}
+.fh .name{flex:1;font-weight:400}.fh .chev{color:var(--ac);transition:transform .2s}.folder.open .chev{transform:rotate(90deg)}
+.fbody{padding:0 1.1rem 1.1rem}
+@media(max-width:700px){.nav button{padding:.7rem .2rem;font-size:.82rem}}

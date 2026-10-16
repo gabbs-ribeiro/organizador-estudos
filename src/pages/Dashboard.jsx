@@ -39,7 +39,7 @@ export default function Dashboard({ goto }) {
         <p className="muted small">Sem pressão: remarque para outro dia ou marque como não realizada.</p>
         <ul className="list">{late.map((t) => <TaskItem key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>
       </section>}
-      <div className="row"><button className="ghost" onClick={() => goto('semana')}>Ver mural da semana</button><button className="primary" onClick={() => goto('caderno')}>Registrar exercício</button></div>
+      <div className="row"><button className="ghost" onClick={() => goto('semana')}>Ver mural da semana</button><button className="primary" onClick={() => goto('exercicios')}>Registrar exercício</button></div>
     </>
   )
 }

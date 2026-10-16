@@ -37,6 +37,17 @@ export const goals = {
   add: (title) => supabase.from('study_goals').insert({ title }).then(ok),
   remove: (id) => supabase.from('study_goals').update({ active: false }).eq('id', id).then(ok),
   logs: (a, b) => supabase.from('goal_logs').select('*, study_goals(title)').gte('log_date', a).lte('log_date', b).order('created_at').then(ok),
-  done: (l) => supabase.from('goal_logs').insert(l).then(ok),
+  done: (l) => supabase.from('goal_logs').insert(l).select().single().then(ok),
   undo: (id) => supabase.from('goal_logs').delete().eq('id', id).then(ok),
+}
+export const notebook = {
+  subjects: () => supabase.from('subjects').select('*').order('name').then(ok),
+  addSubject: (name) => supabase.from('subjects').insert({ name }).select().single().then(ok),
+  removeSubject: (id) => supabase.from('subjects').delete().eq('id', id).then(ok),
+  notes: () => supabase.from('notebook_notes').select('*').order('created_at', { ascending: false }).then(ok),
+  saveNote: (n) => (n.id ? supabase.from('notebook_notes').update({ title: n.title, body: n.body }).eq('id', n.id) : supabase.from('notebook_notes').insert(n)).then(ok),
+  removeNote: (id) => supabase.from('notebook_notes').delete().eq('id', id).then(ok),
+  bySource: (type, id) => supabase.from('notebook_notes').select('*').eq('source_type', type).eq('source_id', id).maybeSingle().then(ok),
+  linked: (n) => supabase.from('notebook_notes').upsert(n, { onConflict: 'user_id,source_type,source_id' }).then(ok),
+  unlink: (type, id) => supabase.from('notebook_notes').delete().eq('source_type', type).eq('source_id', id).then(ok),
 }

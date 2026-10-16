@@ -69,17 +69,34 @@ create table if not exists goal_logs (
   unique (goal_id, log_date));
 create index if not exists idx_logs_user_date on goal_logs(user_id, log_date);
 
+-- Caderno: matérias (pastas) e anotações; anotações de tarefas/metas podem ser copiadas para cá.
+create table if not exists subjects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null, created_at timestamptz not null default now(),
+  unique (user_id, name));
+create table if not exists notebook_notes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  subject_id uuid not null references subjects(id) on delete cascade,
+  title text not null, body text,
+  source_type text not null default 'manual' check (source_type in ('manual','task','goal_log')),
+  source_id uuid, source_date date,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  unique (user_id, source_type, source_id)); -- uma anotação de caderno por tarefa/meta (atualiza em vez de duplicar)
+create index if not exists idx_nn_subject on notebook_notes(subject_id);
+
 create index if not exists idx_tasks_user_date on study_tasks(user_id, task_date);
 create index if not exists idx_ex_user_status on exercise_notes(user_id, status);
 create index if not exists idx_att_exercise on exercise_attempts(exercise_id);
 
 do $$ declare t text; begin
-  foreach t in array array['study_routines','study_tasks','exercise_notes','exercise_attempts','study_goals','goal_logs'] loop
+  foreach t in array array['study_routines','study_tasks','exercise_notes','exercise_attempts','study_goals','goal_logs','subjects','notebook_notes'] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists own_rows on %I', t);
     execute format('create policy own_rows on %I for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())', t);
   end loop;
-  foreach t in array array['study_routines','study_tasks','exercise_notes'] loop
+  foreach t in array array['study_routines','study_tasks','exercise_notes','notebook_notes'] loop
     execute format('drop trigger if exists trg_upd on %I', t);
     execute format('create trigger trg_upd before update on %I for each row execute function set_updated_at()', t);
   end loop;

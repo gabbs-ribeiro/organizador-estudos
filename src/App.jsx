@@ -4,8 +4,9 @@ import Auth from './pages/Auth'
 import Dashboard from './pages/Dashboard'
 import Week from './pages/Week'
 import Notebook from './pages/Notebook'
+import Exercicios from './pages/Exercicios'
 
-const TABS = [['hoje', 'Hoje', Dashboard], ['semana', 'Semana', Week], ['caderno', 'Caderno', Notebook]]
+const TABS = [['hoje', 'Hoje', Dashboard], ['semana', 'Semana', Week], ['caderno', 'Caderno', Notebook], ['exercicios', 'Exercícios', Exercicios]]
 
 export default function App() {
   const [session, setSession] = useState(undefined)

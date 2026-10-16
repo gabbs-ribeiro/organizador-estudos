@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { STATUS, TASK_CATS, fmtMin, fmtDur, iso } from '../lib/util'
-import { tasks } from '../services/api'
+import { tasks, notebook } from '../services/api'
+import NoteForm from './NoteForm'
 
 const secsSince = (d) => (d ? Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 1000)) : 0)
 const RESET = { actual_minutes: null, work_seconds: 0, paused_seconds: 0, segment_started_at: null }
@@ -10,25 +11,37 @@ const PlayIcon = () => <svg viewBox="0 0 24 24" width="22" height="22" fill="cur
 // Fluxo: Iniciar -> (Pausar/Retomar) -> Finalizar. Tempo em atividade e tempo pausado são contados separados.
 // Tempo: calculado automaticamente do início ao fim; o tempo pausado não conta.
 export default function TaskItem({ t, onChange, onError, big }) {
-  const [ask, setAsk] = useState(null), [nt, setNt] = useState(''), [nb, setNb] = useState('')
+  const [ask, setAsk] = useState(null), [subj, setSubj] = useState(null), [nt, setNt] = useState(''), [nb, setNb] = useState('')
   const running = t.status === 'em_andamento', paused = t.status === 'pausada', done = t.status === 'concluida'
   const totals = () => ({
     w: (t.work_seconds || 0) + (running ? secsSince(t.segment_started_at) : 0),
     p: (t.paused_seconds || 0) + (paused ? secsSince(t.segment_started_at) : 0),
   })
-  async function patch(p) { try { await tasks.update(t.id, p); onChange() } catch (e) { onError(e.message) } }
-  function open(kind) { setNt(t.note_title || ''); setNb(t.note_body || ''); setAsk(kind) }
+  async function patch(p) { try { await tasks.update(t.id, p); onChange(); return true } catch (e) { onError(e.message); return false } }
+  function open(kind) {
+    setNt(t.note_title || ''); setNb(t.note_body || ''); setSubj(null); setAsk(kind)
+    if (kind !== 'start') notebook.bySource('task', t.id).then((n) => n && setSubj(n.subject_id)).catch(() => {})
+  }
+  // "Adicionar ao caderno": copia/atualiza a anotação na matéria escolhida (sem duplicar); sem matéria, remove o vínculo
+  async function syncNotebook() {
+    try {
+      if (subj && (nt.trim() || nb.trim())) await notebook.linked({ subject_id: subj, title: nt.trim() || t.title, body: nb.trim() || null, source_type: 'task', source_id: t.id, source_date: t.task_date })
+      else await notebook.unlink('task', t.id)
+    } catch (e) { onError(e.message) }
+  }
   const notes = () => ({ note_title: nt.trim() || null, note_body: nb.trim() || null })
   const nowIso = () => new Date().toISOString()
   const pause = () => patch({ status: 'pausada', work_seconds: totals().w, segment_started_at: nowIso() })
   const resume = () => patch({ status: 'em_andamento', paused_seconds: totals().p, segment_started_at: nowIso() })
-  function yes() {
-    if (ask === 'start') patch({ status: 'em_andamento', work_seconds: 0, paused_seconds: 0, segment_started_at: nowIso() })
-    else if (ask === 'finish') {
+  async function yes() {
+    const kind = ask; setAsk(null)
+    let ok
+    if (kind === 'start') ok = await patch({ status: 'em_andamento', work_seconds: 0, paused_seconds: 0, segment_started_at: nowIso() })
+    else if (kind === 'finish') {
       const { w, p } = totals() // tempo calculado do início ao fim, sem as pausas
-      patch({ status: 'concluida', work_seconds: w, paused_seconds: p, segment_started_at: null, actual_minutes: Math.round(w / 60), ...notes() })
-    } else patch(notes())
-    setAsk(null)
+      ok = await patch({ status: 'concluida', work_seconds: w, paused_seconds: p, segment_started_at: null, actual_minutes: Math.round(w / 60), ...notes() })
+    } else ok = await patch(notes())
+    if (ok && kind !== 'start') syncNotebook()
   }
   const other = (v) => v && patch({ status: v, ...RESET })
   const move = (date) => date && date !== t.task_date && patch({ task_date: date, status: 'pendente', ...RESET })
@@ -72,9 +85,7 @@ export default function TaskItem({ t, onChange, onError, big }) {
           <h3>{title}</h3>
           <p className="muted">{t.title}</p>
           {ask === 'finish' && <div className="timebox"><span className="muted small">Tempo em atividade (calculado automaticamente)</span><big>{fmtDur(w)}</big><span className="muted small">Pausado: {fmtDur(p)} (a pausa não conta)</span></div>}
-          {ask !== 'start' && <>
-            <label>Título da anotação<input value={nt} onChange={(e) => setNt(e.target.value)} placeholder="Sobre o que foi esta atividade?" /></label>
-            <label>Descrição<textarea rows="5" value={nb} onChange={(e) => setNb(e.target.value)} placeholder="O que você fez e aprendeu" /></label></>}
+          {ask !== 'start' && <NoteForm nt={nt} setNt={setNt} nb={nb} setNb={setNb} subj={subj} setSubj={setSubj} titlePh="Sobre o que foi esta atividade?" />}
           <div className="row"><button className="primary" onClick={yes}>{ask === 'note' ? 'Salvar' : 'Sim'}</button><button className="ghost" onClick={() => setAsk(null)}>{ask === 'note' ? 'Cancelar' : 'Não'}</button></div>
         </div></div>}
     </li>

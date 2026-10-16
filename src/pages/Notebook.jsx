@@ -1,71 +1,64 @@
 import { useCallback, useEffect, useState } from 'react'
-import { exercises, attempts } from '../services/api'
-import { PLAT, CATS, DIF, EXST, today } from '../lib/util'
+import { notebook } from '../services/api'
+import NoteArea from '../components/NoteArea'
+import Viewer from '../components/Viewer'
 
-const EMPTY = { title: '', platform: 'leetcode', category: 'algoritmos', difficulty: 'facil', statement: '', first_attempt: '', code: '', notes: '', errors: '', learned: '', next_steps: '', first_attempt_date: today(), solved_date: '', status: 'tentando' }
-const opts = (o) => Object.entries(o).map(([k, v]) => <option key={k} value={k}>{v}</option>)
+const SRC = { manual: 'Anotação', task: 'Tarefa', goal_log: 'Realização' }
+const dmy = (d) => (d ? d.split('-').reverse().join('/') : '')
 
+// Caderno: matérias (pastas) -> anotações. Clicar na matéria expande; clicar na anotação abre o leitor.
 export default function Notebook() {
-  const [list, setList] = useState([]), [form, setForm] = useState(null), [open, setOpen] = useState(null), [err, setErr] = useState('')
-  const [f, setF] = useState({ q: '', platform: '', category: '', difficulty: '', status: '' })
-  const load = useCallback(async () => { try { setList(await exercises.list()); setErr('') } catch (e) { setErr(e.message) } }, [])
+  const [subs, setSubs] = useState([]), [notes, setNotes] = useState([]), [open, setOpen] = useState(null), [err, setErr] = useState('')
+  const [name, setName] = useState(''), [adding, setAdding] = useState(false), [edit, setEdit] = useState(null), [view, setView] = useState(null)
+  const load = useCallback(async () => {
+    try { const [s, n] = await Promise.all([notebook.subjects(), notebook.notes()]); setSubs(s); setNotes(n); setErr('') } catch (e) { setErr(e.message) }
+  }, [])
   useEffect(() => { load() }, [load])
-  const shown = list.filter((x) => (!f.platform || x.platform === f.platform) && (!f.category || x.category === f.category) && (!f.difficulty || x.difficulty === f.difficulty) && (!f.status || x.status === f.status)
-    && (!f.q || [x.title, x.statement, x.code, x.notes, x.errors, x.learned].join(' ').toLowerCase().includes(f.q.toLowerCase())))
-  async function save(e) {
+  const guard = async (fn) => { try { await fn(); await load() } catch (e) { setErr(/duplicate/i.test(e.message) ? 'Já existe uma matéria com esse nome.' : e.message) } }
+  const addSub = (e) => { e.preventDefault(); const n = name.trim(); if (!n) return; guard(async () => { const s = await notebook.addSubject(n); setOpen(s.id); setName(''); setAdding(false) }) }
+  const delSub = (s, count) => window.confirm(`Excluir a matéria "${s.name}" e suas ${count} anotações? Isso não pode ser desfeito.`) && guard(() => notebook.removeSubject(s.id))
+  function saveNote(e) {
     e.preventDefault()
-    if (!form.title.trim()) return setErr('Informe um título.')
-    const { created_at, updated_at, user_id, ...row } = form
-    row.solved_date = row.solved_date || null
-    try { await exercises.save(row); setForm(null); load() } catch (x) { setErr(x.message) }
+    if (!edit.title.trim()) return setErr('Informe um título.')
+    guard(async () => {
+      await notebook.saveNote(edit.id ? { id: edit.id, title: edit.title.trim(), body: edit.body.trim() || null } : { subject_id: edit.subject_id, source_type: 'manual', title: edit.title.trim(), body: edit.body.trim() || null })
+      setEdit(null)
+    })
   }
-  async function del(x) { if (window.confirm(`Excluir "${x.title}" e todas as tentativas?`)) try { await exercises.remove(x.id); load() } catch (e) { setErr(e.message) } }
-  const dup = (x) => { const { id, created_at, updated_at, user_id, ...r } = x; setForm({ ...r, title: x.title + ' (cópia)', status: 'tentando', solved_date: '' }) }
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
-  if (form) return (
-    <form className="form col" onSubmit={save}>
-      <h1>{form.id ? 'Editar exercício' : 'Novo exercício'}</h1>{err && <p role="alert" className="err">{err}</p>}
-      <input placeholder="Título" value={form.title} onChange={set('title')} required />
-      <div className="row wrap"><select aria-label="Plataforma" value={form.platform} onChange={set('platform')}>{opts(PLAT)}</select><select aria-label="Categoria" value={form.category} onChange={set('category')}>{opts(CATS)}</select><select aria-label="Dificuldade" value={form.difficulty} onChange={set('difficulty')}>{opts(DIF)}</select><select aria-label="Status" value={form.status} onChange={set('status')}>{opts(EXST)}</select></div>
-      <div className="row wrap"><label>Primeira tentativa<input type="date" value={form.first_attempt_date} onChange={set('first_attempt_date')} /></label><label>Resolvido em<input type="date" value={form.solved_date || ''} onChange={set('solved_date')} /></label></div>
-      {[['statement', 'Enunciado'], ['first_attempt', 'Minha tentativa inicial'], ['errors', 'Erros encontrados'], ['notes', 'Anotações'], ['learned', 'O que aprendi'], ['next_steps', 'Próximos passos / dúvidas']].map(([k, l]) => <label key={k}>{l}<textarea rows="3" value={form[k] || ''} onChange={set(k)} /></label>)}
-      <label>Código da solução<textarea className="code" rows="10" spellCheck="false" value={form.code || ''} onChange={set('code')} onKeyDown={(e) => { if (e.key === 'Tab') { e.preventDefault(); const t = e.target, s = t.selectionStart; setForm({ ...form, code: t.value.slice(0, s) + '    ' + t.value.slice(t.selectionEnd) }); requestAnimationFrame(() => (t.selectionStart = t.selectionEnd = s + 4)) } }} /></label>
-      <div className="row"><button className="primary">Salvar exercício</button><button type="button" className="ghost" onClick={() => setForm(null)}>Cancelar</button></div>
-    </form>)
+  const openNote = (n, s) => setView({
+    kind: SRC[n.source_type], date: dmy(n.source_date || n.created_at.slice(0, 10)), title: n.title, sub: s.name, body: n.body,
+    actions: <>
+      <button className="ghost" onClick={() => { setView(null); setEdit({ id: n.id, title: n.title, body: n.body || '' }) }}>Editar</button>
+      <button className="ghost" onClick={() => window.confirm(`Excluir a anotação "${n.title}"?`) && (setView(null), guard(() => notebook.removeNote(n.id)))}>Excluir</button></>,
+  })
   return (
     <>
-      <div className="row between"><h1>Caderno</h1><button className="primary" onClick={() => setForm({ ...EMPTY })}>Novo exercício</button></div>
+      <div className="row between wrap"><h1>Caderno</h1><button className="primary" onClick={() => setAdding(!adding)}>Nova matéria</button></div>
+      {adding && <form className="row addgoal" onSubmit={addSub}><input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da matéria (ex.: Java)" aria-label="Nome da matéria" /><button className="primary">Criar</button></form>}
       {err && <p role="alert" className="err">{err}</p>}
-      <div className="row wrap filters"><input type="search" placeholder="Pesquisar…" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
-        {[['platform', 'Plataforma', PLAT], ['category', 'Categoria', CATS], ['difficulty', 'Dificuldade', DIF], ['status', 'Status', EXST]].map(([k, l, o]) => <select key={k} aria-label={l} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })}><option value="">{l}: todos</option>{opts(o)}</select>)}</div>
-      {shown.length === 0 ? <p className="empty">{list.length ? 'Nenhum exercício com esses filtros.' : 'Nenhum exercício ainda. Registre o primeiro.'}</p> :
-        <ul className="list">{shown.map((x) => <li key={x.id} className="task col">
-          <div className="row between"><div><b>{x.title}</b><span className="muted"> {PLAT[x.platform]} · {CATS[x.category]} · {DIF[x.difficulty]}</span></div><span className={`pill s-${x.status}`}>{EXST[x.status]}</span></div>
-          <div className="row wrap"><button className="ghost" onClick={() => setOpen(open === x.id ? null : x.id)}>{open === x.id ? 'Fechar' : 'Abrir'}</button><button className="ghost" onClick={() => setForm({ ...x, solved_date: x.solved_date || '' })}>Editar</button><button className="ghost" onClick={() => dup(x)}>Duplicar</button><button className="ghost" onClick={() => del(x)}>Excluir</button></div>
-          {open === x.id && <Detail x={x} onError={setErr} />}</li>)}</ul>}
-    </>)
-}
-
-function Detail({ x, onError }) {
-  const [att, setAtt] = useState([]), [a, setA] = useState({ attempt_date: today(), content: '', errors: '', help_type: '', result: '', clearer: '' })
-  const load = useCallback(() => attempts.list(x.id).then(setAtt).catch((e) => onError(e.message)), [x.id, onError])
-  useEffect(() => { load() }, [load])
-  async function add(e) { e.preventDefault(); try { await attempts.add({ ...a, exercise_id: x.id }); setA({ ...a, content: '', errors: '', help_type: '', result: '', clearer: '' }); load() } catch (er) { onError(er.message) } }
-  const F = ([l, v]) => v ? <p key={l}><b>{l}:</b> {v}</p> : null
-  const s = (k) => (e) => setA({ ...a, [k]: e.target.value })
-  return (<div className="detail">
-    {[['Enunciado', x.statement], ['Tentativa inicial', x.first_attempt], ['Erros', x.errors], ['Anotações', x.notes], ['Aprendizados', x.learned], ['Próximos passos', x.next_steps]].map(F)}
-    {x.code && <pre className="code">{x.code}</pre>}
-    <h3>Tentativas</h3>
-    {att.length === 0 && <p className="empty">Nenhuma tentativa registrada.</p>}
-    {att.map((t) => <div key={t.id} className="attempt"><b>{t.attempt_date}</b>{t.result && ` · ${t.result}`}{t.help_type && ` · ajuda: ${t.help_type}`}
-      {[['Raciocínio/código', t.content], ['Erros', t.errors], ['Ficou mais claro', t.clearer]].map(F)}
-      <button className="ghost" onClick={() => window.confirm('Excluir tentativa?') && attempts.remove(t.id).then(load).catch((e) => onError(e.message))}>Excluir</button></div>)}
-    <form className="form col" onSubmit={add}><input type="date" value={a.attempt_date} onChange={s('attempt_date')} />
-      <textarea className="code" rows="4" placeholder="Código ou raciocínio" value={a.content} onChange={s('content')} />
-      <input placeholder="Erros encontrados" value={a.errors} onChange={s('errors')} />
-      <input placeholder="Tipo de ajuda (nenhuma, dica, solução…)" value={a.help_type} onChange={s('help_type')} />
-      <input placeholder="Resultado (passou, falhou…)" value={a.result} onChange={s('result')} />
-      <input placeholder="O que ficou mais claro" value={a.clearer} onChange={s('clearer')} />
-      <button className="primary">Registrar tentativa</button></form></div>)
+      {subs.length === 0 ? <p className="empty">Nenhuma matéria ainda. Crie uma pasta para começar (ex.: Java, Algoritmos, Banco de dados).</p> :
+        subs.map((s) => {
+          const list = notes.filter((n) => n.subject_id === s.id), isOpen = open === s.id
+          return (
+            <section key={s.id} className={`folder${isOpen ? ' open' : ''}`}>
+              <button className="fh" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : s.id)}>
+                <span className="chev" aria-hidden="true">▸</span><span className="name">{s.name}</span><span className="pill">{list.length}</span></button>
+              {isOpen && <div className="fbody">
+                {list.length === 0 ? <p className="empty">Nenhuma anotação nesta matéria.</p> : list.map((n) =>
+                  <button key={n.id} className="entry" onClick={() => openNote(n, s)}><span className="et">{n.title}</span><span className="muted small">{SRC[n.source_type]} · {dmy(n.source_date || n.created_at.slice(0, 10))}</span></button>)}
+                <div className="row wrap" style={{ marginTop: '.6rem' }}>
+                  <button className="primary" onClick={() => setEdit({ subject_id: s.id, title: '', body: '' })}>Nova anotação</button>
+                  <button className="ghost" onClick={() => delSub(s, list.length)}>Excluir matéria</button></div>
+              </div>}
+            </section>)
+        })}
+      {edit && <div className="overlay"><form className="dialog wide" onSubmit={saveNote}>
+        <h3>{edit.id ? 'Editar anotação' : 'Nova anotação'}</h3>
+        <label>Título<input autoFocus value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} /></label>
+        <label>Descrição <span className="small">(use // para comentários em verde)</span><NoteArea rows={12} value={edit.body} onChange={(e) => setEdit({ ...edit, body: e.target.value })} /></label>
+        <div className="row"><button className="primary">Salvar</button><button type="button" className="ghost" onClick={() => setEdit(null)}>Cancelar</button></div>
+      </form></div>}
+      {view && <Viewer v={view} onClose={() => setView(null)} />}
+    </>
+  )
 }
