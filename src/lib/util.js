@@ -10,3 +10,4 @@ export const PLAT = { leetcode:'LeetCode', beecrowd:'Beecrowd', faculdade:'Facul
 export const DIF = { facil:'Fácil', medio:'Médio', dificil:'Difícil' }
 export const EXST = { tentando:'Ainda tentando', com_ajuda:'Resolvido com ajuda', sozinho:'Resolvido sozinho', revisar:'Revisar novamente' }
 export const fmtMin = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`
+export const fmtDur = (s) => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60, z = (n) => String(n).padStart(2, '0'); return h ? `${h}h ${z(m)}min ${z(x)}s` : m ? `${m}min ${z(x)}s` : `${x}s` }

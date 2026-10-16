@@ -1,44 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
 import { tasks, routines, goals } from '../services/api'
-import { iso, today, weekStart, addDays, DIAS, TASK_CATS, STATUS, fmtMin } from '../lib/util'
+import { iso, today, weekStart, addDays, DIAS, TASK_CATS, STATUS, fmtMin, fmtDur } from '../lib/util'
 
-// Item do mural: título da anotação em destaque; clicar abre a descrição completa.
-function Entry({ title, sub, body, meta, done }) {
-  const head = <><span className="et">{title}</span><span className="muted small">{sub}</span></>
-  return (body || meta) ? (
-    <details className={`entry${done ? ' done' : ''}`}><summary>{head}</summary>
-      <div className="eb">{body ? <p>{body}</p> : <p className="muted">Sem descrição.</p>}{meta && <p className="muted small">{meta}</p>}</div></details>
-  ) : <div className={`entry${done ? ' done' : ''}`}><div className="sum">{head}</div></div>
+// Item do mural: título da anotação em destaque; clicar abre a anotação expandida na tela.
+function Entry({ title, sub, done, onOpen }) {
+  return <button className={`entry${done ? ' done' : ''}`} onClick={onOpen}><span className="et">{title}</span><span className="muted small">{sub}</span></button>
 }
 
-export default function Week() {
-  const [off, setOff] = useState(0), [list, setList] = useState([]), [logs, setLogs] = useState([]), [rt, setRt] = useState([]), [err, setErr] = useState(''), [msg, setMsg] = useState('')
-  const start = addDays(weekStart(), off * 7)
-  const load = useCallback(async () => {
-    try {
-      const a = iso(start), b = iso(addDays(start, 6))
-      const [t, l, r] = await Promise.all([tasks.range(a, b), goals.logs(a, b), routines.list()])
-      setList(t); setLogs(l); setRt(r); setErr('')
-    } catch (e) { setErr(e.message) }
-  }, [off]) // eslint-disable-line
-  useEffect(() => { load() }, [load])
-  async function generate() { try { await tasks.generateWeek(start, iso); setMsg('Semana gerada pela rotina (sem duplicar o que já existe).'); load() } catch (e) { setErr(e.message) } }
-  async function add(e) {
-    e.preventDefault(); const f = new FormData(e.target)
-    if (!f.get('title').trim()) return setErr('Informe um título.')
-    try { await tasks.add({ title: f.get('title').trim(), task_date: f.get('date'), category: f.get('category'), est_minutes: +f.get('min') || 0, description: f.get('desc') || null }); e.target.reset(); setMsg('Tarefa adicionada.'); load() } catch (x) { setErr(x.message) }
-  }
-  async function editRt(r) {
-    const title = window.prompt('Título:', r.title); if (title === null || !title.trim()) return
-    const m = window.prompt('Minutos planejados:', String(r.minutes)); if (m === null) return
-    try { await routines.update(r.id, { title: title.trim(), minutes: Math.max(0, parseInt(m, 10) || 0) }); load() } catch (x) { setErr(x.message) }
-  }
-  async function delRt(r) { if (window.confirm(`Remover "${r.title}" da rotina? Tarefas já geradas continuam.`)) try { await routines.remove(r.id); load() } catch (x) { setErr(x.message) } }
-  async function addRt(e) {
-    e.preventDefault(); const f = new FormData(e.target)
-    try { await routines.add({ weekday: +f.get('wd'), title: f.get('title').trim(), category: f.get('category'), minutes: +f.get('min') || 0 }); e.target.reset(); load() } catch (x) { setErr(x.message) }
-  }
-  const catOpts = Object.entries(TASK_CATS).map(([k, v]) => <option key={k} value={k}>{v}</option>)
+// Leitor: anotação em tela cheia (celular) / folha grande (PC) para estudar o conteúdo.
+function Viewer({ v, onClose }) {
+  useEffect(() => { const k = (e) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k) }, [onClose])
+  return (
+    <div className="viewer" role="dialog" aria-modal="true" aria-label={v.title} onClick={onClose}>
+      <article className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="row between"><span className="pill">{v.kind} · {v.date}</span><button className="ghost" onClick={onClose}>Fechar</button></div>
+        <h2>{v.title}</h2>
+        {v.sub && <p className="muted">{v.sub}</p>}
+        <div className="body">{v.body || <span className="muted">Sem descrição registrada.</span>}</div>
+        {v.meta && <p className="muted small">{v.meta}</p>}
+      </article>
+    </div>
+  )
+}
+
+const metaOf = (t) => [TASK_CATS[t.category] || t.category, `${fmtMin(t.est_minutes)} previstos`,
+  t.work_seconds > 0 ? `Em atividade ${fmtDur(t.work_seconds)}` : t.actual_minutes != null ? `${fmtMin(t.actual_minutes)} reais` : null,
+  t.paused_seconds > 0 ? `Pausado ${fmtDur(t.paused_seconds)}` : null].filter(Boolean).join(' · ')
+
   return (
     <>
       <div className="row between wrap"><h1>Mural da semana</h1>
@@ -48,25 +36,26 @@ export default function Week() {
       <div className="mural">
         {DIAS.map((n, i) => {
           const date = iso(addDays(start, i)), dt = list.filter((t) => t.task_date === date), dl = logs.filter((l) => l.log_date === date)
-          const nDone = dt.filter((t) => t.status === 'concluida').length
+          const nDone = dt.filter((t) => t.status === 'concluida').length, label = `${n}, ${date.split('-').reverse().join('/')}`
           return (
             <section key={i} className={`day${date === today() ? ' now' : ''}`}>
               <h2>{n} <span className="muted small">{date.split('-').reverse().slice(0, 2).join('/')}</span></h2>
               <div className="blk">
                 <h3>Tarefas <span className="pill">{nDone}/{dt.length}</span></h3>
                 {dt.length === 0 ? <p className="empty">Sem tarefas neste dia.</p> : dt.map((t) =>
-                  <Entry key={t.id} done={t.status === 'concluida'} title={t.note_title || t.title}
-                    sub={`${t.note_title ? t.title + ' · ' : ''}${STATUS[t.status]}`} body={t.note_body}
-                    meta={`${TASK_CATS[t.category] || t.category} · ${fmtMin(t.est_minutes)} previstos${t.actual_minutes != null ? ` · ${fmtMin(t.actual_minutes)} reais` : ''}${t.paused_seconds >= 60 ? ` · ${Math.round(t.paused_seconds / 60)} min pausado` : ''}`} />)}
+                  <Entry key={t.id} done={t.status === 'concluida'} title={t.note_title || t.title} sub={`${t.note_title ? t.title + ' · ' : ''}${STATUS[t.status]}`}
+                    onOpen={() => setView({ kind: 'Tarefa', date: label, title: t.note_title || t.title, sub: `${t.title} · ${STATUS[t.status]}`, body: t.note_body, meta: metaOf(t) })} />)}
               </div>
               <div className="blk goalblk">
-                <h3>Metas <span className="pill on">{dl.length}</span></h3>
-                {dl.length === 0 ? <p className="empty">Nenhuma meta feita neste dia.</p> : dl.map((l) =>
-                  <Entry key={l.id} done title={l.note_title || l.study_goals?.title || 'Meta'} sub={l.note_title ? l.study_goals?.title : 'Sem título de anotação'} body={l.note_body} />)}
+                <h3>Realizações <span className="pill on">{dl.length}</span></h3>
+                {dl.length === 0 ? <p className="empty">Nenhuma realização neste dia.</p> : dl.map((l) =>
+                  <Entry key={l.id} done title={l.note_title || l.study_goals?.title || 'Meta'} sub={l.note_title ? l.study_goals?.title : 'Sem título de anotação'}
+                    onOpen={() => setView({ kind: 'Realização', date: label, title: l.note_title || l.study_goals?.title || 'Meta', sub: l.study_goals?.title, body: l.note_body })} />)}
               </div>
             </section>)
         })}
       </div>
+      {view && <Viewer v={view} onClose={() => setView(null)} />}
       <details className="manage"><summary>Gerenciar tarefas e rotina padrão</summary>
         <button className="primary" onClick={generate}>Gerar esta semana pela rotina</button>
         <h2>Nova tarefa</h2>

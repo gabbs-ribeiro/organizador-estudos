@@ -118,3 +118,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 button.chk{background:none;padding:0;cursor:pointer;color:transparent;width:26px;height:26px}button.chk:hover{border-color:var(--ac)}
 .goal.done button.chk{color:#06231f}.goal.done button.chk:hover{border-color:var(--ok);opacity:.8}
 .goal .x{background:none;border:0;padding:.1rem .5rem;font-size:1.1rem;line-height:1;color:var(--mut);flex:none}.goal .x:hover{color:var(--err);background:none}
+/* tempo automático e leitor de anotações */
+.timebox{background:var(--card2);border-radius:18px;padding:.8rem 1rem;display:flex;flex-direction:column}.timebox big{font-size:2rem;margin-top:.2rem}
+button.entry{display:flex;flex-direction:column;width:100%;text-align:left;border:0;border-left:4px solid transparent;color:inherit;font:inherit;cursor:pointer}
+button.entry.done{border-left-color:var(--ac)}button.entry:hover{background:#333}
+.viewer{position:fixed;inset:0;background:rgba(0,0,0,.78);display:grid;place-items:center;padding:1rem;z-index:60}
+.sheet{background:var(--card);border-radius:28px;padding:1.5rem 1.6rem;width:100%;max-width:760px;max-height:92vh;overflow:auto}
+.sheet h2{font-size:1.9rem;font-weight:300;line-height:1.2;margin:1.1rem 0 .3rem;letter-spacing:-.02em}
+.sheet .body{white-space:pre-wrap;font-size:1.08rem;line-height:1.75;margin:1.2rem 0;overflow-wrap:anywhere}
+@media(max-width:700px){.viewer{padding:0}.sheet{height:100%;max-height:100%;border-radius:0;padding:1.2rem}.sheet h2{font-size:1.6rem}}

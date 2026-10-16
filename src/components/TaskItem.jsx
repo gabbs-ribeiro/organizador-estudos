@@ -1,24 +1,23 @@
 import { useEffect, useState } from 'react'
-import { STATUS, TASK_CATS, fmtMin, iso } from '../lib/util'
+import { STATUS, TASK_CATS, fmtMin, fmtDur, iso } from '../lib/util'
 import { tasks } from '../services/api'
 
 const secsSince = (d) => (d ? Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 1000)) : 0)
-const mm = (s) => `${Math.round(s / 60)} min`
 const RESET = { actual_minutes: null, work_seconds: 0, paused_seconds: 0, segment_started_at: null }
 const PauseIcon = () => <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect x="14" y="5" width="4" height="14" rx="1.2" /></svg>
 const PlayIcon = () => <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
 
 // Fluxo: Iniciar -> (Pausar/Retomar) -> Finalizar. Tempo em atividade e tempo pausado são contados separados.
-// Tempo real: sugere o tempo em atividade (sem as pausas); editável; vazio = não contabiliza.
+// Tempo: calculado automaticamente do início ao fim; o tempo pausado não conta.
 export default function TaskItem({ t, onChange, onError, big }) {
-  const [ask, setAsk] = useState(null), [mins, setMins] = useState(''), [nt, setNt] = useState(''), [nb, setNb] = useState('')
+  const [ask, setAsk] = useState(null), [nt, setNt] = useState(''), [nb, setNb] = useState('')
   const running = t.status === 'em_andamento', paused = t.status === 'pausada', done = t.status === 'concluida'
   const totals = () => ({
     w: (t.work_seconds || 0) + (running ? secsSince(t.segment_started_at) : 0),
     p: (t.paused_seconds || 0) + (paused ? secsSince(t.segment_started_at) : 0),
   })
   async function patch(p) { try { await tasks.update(t.id, p); onChange() } catch (e) { onError(e.message) } }
-  function open(kind) { setMins(String(running || paused ? Math.round(totals().w / 60) : t.est_minutes)); setNt(t.note_title || ''); setNb(t.note_body || ''); setAsk(kind) }
+  function open(kind) { setNt(t.note_title || ''); setNb(t.note_body || ''); setAsk(kind) }
   const notes = () => ({ note_title: nt.trim() || null, note_body: nb.trim() || null })
   const nowIso = () => new Date().toISOString()
   const pause = () => patch({ status: 'pausada', work_seconds: totals().w, segment_started_at: nowIso() })
@@ -26,15 +25,15 @@ export default function TaskItem({ t, onChange, onError, big }) {
   function yes() {
     if (ask === 'start') patch({ status: 'em_andamento', work_seconds: 0, paused_seconds: 0, segment_started_at: nowIso() })
     else if (ask === 'finish') {
-      const n = parseInt(mins, 10), { w, p } = totals()
-      patch({ status: 'concluida', work_seconds: w, paused_seconds: p, segment_started_at: null, actual_minutes: mins.trim() === '' || Number.isNaN(n) || n < 0 ? null : n, ...notes() })
+      const { w, p } = totals() // tempo calculado do início ao fim, sem as pausas
+      patch({ status: 'concluida', work_seconds: w, paused_seconds: p, segment_started_at: null, actual_minutes: Math.round(w / 60), ...notes() })
     } else patch(notes())
     setAsk(null)
   }
   const other = (v) => v && patch({ status: v, ...RESET })
   const move = (date) => date && date !== t.task_date && patch({ task_date: date, status: 'pendente', ...RESET })
   const [, tick] = useState(0)
-  useEffect(() => { const i = setInterval(() => tick((n) => n + 1), 30000); return () => clearInterval(i) }, [])
+  useEffect(() => { const i = setInterval(() => tick((n) => n + 1), running || paused ? 1000 : 30000); return () => clearInterval(i) }, [running, paused])
   // faixa de horário no começo da descrição (ex.: 19h30–21h45): verde, ou vermelha se já passou do início sem iniciar
   const m = (t.description || '').match(/^\d{1,2}h\d{2}\s*[–-]\s*\d{1,2}h\d{2}/)
   const rest = m ? t.description.slice(m[0].length).replace(/^\s*·\s*/, '') : t.description
@@ -48,8 +47,8 @@ export default function TaskItem({ t, onChange, onError, big }) {
   return (
     <li className={`task st-${t.status}${big ? ' big' : ''}`}>
       <div><b>{t.title}</b> <span className="pill">{STATUS[t.status]}</span>
-        <div className="muted">{t.start_time && `${t.start_time.slice(0, 5)} · `}{TASK_CATS[t.category] || t.category} · {fmtMin(t.est_minutes)} previstos{t.actual_minutes != null && ` · ${fmtMin(t.actual_minutes)} reais`}</div>
-        {tracked && <p className="small muted">Em atividade {mm(w)} · Pausado {mm(p)}</p>}
+        <div className="muted">{t.start_time && `${t.start_time.slice(0, 5)} · `}{TASK_CATS[t.category] || t.category} · {fmtMin(t.est_minutes)} previstos{t.actual_minutes != null && !tracked && ` · ${fmtMin(t.actual_minutes)} reais`}</div>
+        {tracked && <p className="small muted">Em atividade {fmtDur(w)} · Pausado {fmtDur(p)}</p>}
         {t.description && <p className="muted small">{m && <span className={`tm ${late ? 'late' : 'on'}`}>{m[0]}</span>}{m && rest ? ' · ' : ''}{rest}</p>}
         {t.note_title && <p className="small note-t">Anotação: {t.note_title}</p>}</div>
       <div className="actions">
@@ -72,10 +71,7 @@ export default function TaskItem({ t, onChange, onError, big }) {
         <div className="dialog" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
           <h3>{title}</h3>
           <p className="muted">{t.title}</p>
-          {ask === 'finish' && <>
-            {tracked && <p className="small muted">Em atividade {mm(w)} · Pausado {mm(p)} (a pausa não conta como estudo)</p>}
-            <label>Tempo real em minutos (deixe vazio para não contabilizar)
-              <input type="number" min="0" value={mins} onChange={(e) => setMins(e.target.value)} /></label></>}
+          {ask === 'finish' && <div className="timebox"><span className="muted small">Tempo em atividade (calculado automaticamente)</span><big>{fmtDur(w)}</big><span className="muted small">Pausado: {fmtDur(p)} (a pausa não conta)</span></div>}
           {ask !== 'start' && <>
             <label>Título da anotação<input value={nt} onChange={(e) => setNt(e.target.value)} placeholder="Sobre o que foi esta atividade?" /></label>
             <label>Descrição<textarea rows="5" value={nb} onChange={(e) => setNb(e.target.value)} placeholder="O que você fez e aprendeu" /></label></>}
