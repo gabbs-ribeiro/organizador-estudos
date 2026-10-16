@@ -68,4 +68,4 @@ const metaOf = (t) => [TASK_CATS[t.category] || t.category, `${fmtMin(t.est_minu
       </details>
     </>
   )
-}
+
