@@ -12,6 +12,34 @@ const metaOf = (t) => [TASK_CATS[t.category] || t.category, `${fmtMin(t.est_minu
   t.work_seconds > 0 ? `Em atividade ${fmtDur(t.work_seconds)}` : t.actual_minutes != null ? `${fmtMin(t.actual_minutes)} reais` : null,
   t.paused_seconds > 0 ? `Pausado ${fmtDur(t.paused_seconds)}` : null].filter(Boolean).join(' · ')
 
+export default function Week() {
+  const [off, setOff] = useState(0), [list, setList] = useState([]), [logs, setLogs] = useState([]), [rt, setRt] = useState([]), [err, setErr] = useState(''), [msg, setMsg] = useState(''), [view, setView] = useState(null)
+  const start = addDays(weekStart(), off * 7)
+  const load = useCallback(async () => {
+    try {
+      const a = iso(start), b = iso(addDays(start, 6))
+      const [t, l, r] = await Promise.all([tasks.range(a, b), goals.logs(a, b), routines.list()])
+      setList(t); setLogs(l); setRt(r); setErr('')
+    } catch (e) { setErr(e.message) }
+  }, [off]) // eslint-disable-line
+  useEffect(() => { load() }, [load])
+  async function generate() { try { await tasks.generateWeek(start, iso); setMsg('Semana gerada pela rotina (sem duplicar o que já existe).'); load() } catch (e) { setErr(e.message) } }
+  async function add(e) {
+    e.preventDefault(); const f = new FormData(e.target)
+    if (!f.get('title').trim()) return setErr('Informe um título.')
+    try { await tasks.add({ title: f.get('title').trim(), task_date: f.get('date'), category: f.get('category'), est_minutes: +f.get('min') || 0, description: f.get('desc') || null }); e.target.reset(); setMsg('Tarefa adicionada.'); load() } catch (x) { setErr(x.message) }
+  }
+  async function editRt(r) {
+    const title = window.prompt('Título:', r.title); if (title === null || !title.trim()) return
+    const m = window.prompt('Minutos planejados:', String(r.minutes)); if (m === null) return
+    try { await routines.update(r.id, { title: title.trim(), minutes: Math.max(0, parseInt(m, 10) || 0) }); load() } catch (x) { setErr(x.message) }
+  }
+  async function delRt(r) { if (window.confirm(`Remover "${r.title}" da rotina? Tarefas já geradas continuam.`)) try { await routines.remove(r.id); load() } catch (x) { setErr(x.message) } }
+  async function addRt(e) {
+    e.preventDefault(); const f = new FormData(e.target)
+    try { await routines.add({ weekday: +f.get('wd'), title: f.get('title').trim(), category: f.get('category'), minutes: +f.get('min') || 0 }); e.target.reset(); load() } catch (x) { setErr(x.message) }
+  }
+  const catOpts = Object.entries(TASK_CATS).map(([k, v]) => <option key={k} value={k}>{v}</option>)
   return (
     <>
       <div className="row between wrap"><h1>Mural da semana</h1>
