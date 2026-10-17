@@ -11,3 +11,5 @@ export const DIF = { facil:'Fácil', medio:'Médio', dificil:'Difícil' }
 export const EXST = { tentando:'Ainda tentando', com_ajuda:'Resolvido com ajuda', sozinho:'Resolvido sozinho', revisar:'Revisar novamente' }
 export const fmtMin = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`
 export const fmtDur = (s) => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60, z = (n) => String(n).padStart(2, '0'); return h ? `${h}h ${z(m)}min ${z(x)}s` : m ? `${m}min ${z(x)}s` : `${x}s` }
+export const rangeText = (start, mins) => { if (!start || !(mins > 0)) return ''; const [h, m] = start.split(':').map(Number), t = h * 60 + m, e = (t + mins) % 1440, f = (x) => `${Math.floor(x / 60)}h${String(x % 60).padStart(2, '0')}`; return `${f(t)}–${f(e)}` }
+export const stripRange = (d) => (d || '').replace(/^\d{1,2}h\d{2}\s*[–-]\s*\d{1,2}h\d{2}\s*(·\s*)?/, '')

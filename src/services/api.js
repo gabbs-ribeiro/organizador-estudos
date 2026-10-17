@@ -17,10 +17,12 @@ export const tasks = {
   generateWeek(start, iso) { return this.generateDays(start, iso) },
 }
 export const routines = {
-  list: () => supabase.from('study_routines').select('*').order('weekday').then(ok),
+  list: () => supabase.from('study_routines').select('*').order('weekday').order('start_time', { nullsFirst: false }).then(ok),
   add: (r) => supabase.from('study_routines').insert(r).then(ok),
   update: (id, p) => supabase.from('study_routines').update(p).eq('id', id).then(ok),
   remove: (id) => supabase.from('study_routines').delete().eq('id', id).then(ok),
+  // propaga a edição para tarefas já geradas que ainda estão pendentes (de hoje em diante)
+  applyToTasks: (id, p, from) => supabase.from('study_tasks').update(p).eq('routine_id', id).eq('status', 'pendente').gte('task_date', from).then(ok),
 }
 export const exercises = {
   list: () => supabase.from('exercise_notes').select('*').order('created_at', { ascending: false }).then(ok),
@@ -49,5 +51,6 @@ export const notebook = {
   removeNote: (id) => supabase.from('notebook_notes').delete().eq('id', id).then(ok),
   bySource: (type, id) => supabase.from('notebook_notes').select('*').eq('source_type', type).eq('source_id', id).maybeSingle().then(ok),
   linked: (n) => supabase.from('notebook_notes').upsert(n, { onConflict: 'user_id,source_type,source_id' }).then(ok),
+  moveBySource: (type, id, subject_id) => supabase.from('notebook_notes').update({ subject_id }).eq('source_type', type).eq('source_id', id).then(ok),
   unlink: (type, id) => supabase.from('notebook_notes').delete().eq('source_type', type).eq('source_id', id).then(ok),
 }

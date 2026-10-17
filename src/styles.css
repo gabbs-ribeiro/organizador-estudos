@@ -146,3 +146,9 @@ button.entry.done{border-left-color:var(--ac)}button.entry:hover{background:#333
 .fh .name{flex:1;font-weight:400}.fh .chev{color:var(--ac);transition:transform .2s}.folder.open .chev{transform:rotate(90deg)}
 .fbody{padding:0 1.1rem 1.1rem}
 @media(max-width:700px){.nav button{padding:.7rem .2rem;font-size:.82rem}}
+
+/* leitor: botão de caderno no canto superior esquerdo */
+.topbar{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:center}
+.topbar .addnb{order:1}.topbar>.row{order:2}.topbar .panel{order:3;flex:1 1 100%;background:var(--card2);border-radius:18px;padding:.7rem .9rem}
+.addnb.sel{outline:2px solid var(--ok);color:var(--ok)}.kindpill{display:inline-block;margin-top:1rem}.sheet .kindpill+h2{margin-top:.5rem}
+.chk-row{flex-direction:row!important;align-items:center;gap:.5rem}.chk-row input{width:auto}
