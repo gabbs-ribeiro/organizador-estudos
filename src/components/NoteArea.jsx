@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 
 // Comentário estilo código: de "//" até o fim da linha (ignora "http://").
-const commentIdx = (line) => { let i = -1; while ((i = line.indexOf('//', i + 1)) !== -1) if (i === 0 || line[i - 1] !== ':') return i; return -1 }
+export const commentIdx = (line) => { let i = -1; while ((i = line.indexOf('//', i + 1)) !== -1) if (i === 0 || line[i - 1] !== ':') return i; return -1 }
 
 export function Highlighted({ text }) {
   return text.split('\n').map((ln, k, a) => {

@@ -152,3 +152,19 @@ button.entry.done{border-left-color:var(--ac)}button.entry:hover{background:#333
 .topbar .addnb{order:1}.topbar>.row{order:2}.topbar .panel{order:3;flex:1 1 100%;background:var(--card2);border-radius:18px;padding:.7rem .9rem}
 .addnb.sel{outline:2px solid var(--ok);color:var(--ok)}.kindpill{display:inline-block;margin-top:1rem}.sheet .kindpill+h2{margin-top:.5rem}
 .chk-row{flex-direction:row!important;align-items:center;gap:.5rem}.chk-row input{width:auto}
+
+/* anotação em tela cheia + editor */
+.screen{position:fixed;inset:0;z-index:70;background:var(--bg);overflow:auto}
+.sbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.7rem 1rem;background:var(--bg);border-bottom:1px solid var(--line)}
+.swrap{max-width:780px;margin:0 auto;padding:1.2rem 1.2rem 8rem}
+.sh1{font-size:2.3rem;font-weight:300;line-height:1.15;margin:.8rem 0 1.2rem;letter-spacing:-.02em;overflow-wrap:anywhere}
+.stitle{width:100%;font-size:1.8rem;font-weight:300;margin:.8rem 0 1rem}
+.rich,.plain,.editor{font-size:18px;line-height:1.6;overflow-wrap:anywhere}.plain{white-space:pre-wrap}
+.editor{min-height:50vh;outline:none;background:var(--card);border-radius:20px;padding:1rem 1.1rem;caret-color:var(--ink)}
+.editor:focus{outline:2px solid var(--ac)}.rich div,.editor div{min-height:1.2em}
+.icon{width:44px;height:44px;border-radius:50%;border:0;background:var(--ac);color:var(--on-ac);display:grid;place-items:center;cursor:pointer}
+.tools{position:fixed;left:0;right:0;bottom:0;z-index:3;display:flex;gap:.4rem;align-items:center;overflow-x:auto;padding:.6rem .8rem calc(.6rem + env(safe-area-inset-bottom,0px));background:#262626;border-top:1px solid var(--line)}
+.tools button{flex:none;min-width:40px;height:40px;padding:0 .8rem;border:0;border-radius:12px;background:var(--card2);color:var(--ink);font:inherit;cursor:pointer}
+.tools button:hover{background:#383838}.tools .sw{min-width:32px;width:32px;height:32px;padding:0;border-radius:50%;border:2px solid #666}
+.tools .sep{width:1px;height:26px;background:var(--line);flex:none}
+.hint{position:fixed;left:50%;bottom:4.6rem;transform:translateX(-50%);z-index:4;background:var(--card2);padding:.45rem 1rem;border-radius:999px;font-size:.9rem;white-space:nowrap}

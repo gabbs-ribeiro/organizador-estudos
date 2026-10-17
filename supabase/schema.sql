@@ -85,6 +85,7 @@ create table if not exists notebook_notes (
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
   unique (user_id, source_type, source_id)); -- uma anotação de caderno por tarefa/meta (atualiza em vez de duplicar)
 create index if not exists idx_nn_subject on notebook_notes(subject_id);
+alter table notebook_notes add column if not exists body_html text; -- texto formatado (negrito, tamanhos, cores); body guarda a versão em texto puro
 
 create index if not exists idx_tasks_user_date on study_tasks(user_id, task_date);
 create index if not exists idx_ex_user_status on exercise_notes(user_id, status);

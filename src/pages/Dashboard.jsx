@@ -19,10 +19,11 @@ export default function Dashboard({ goto }) {
   useEffect(() => { load() }, [load])
   if (loading) return <p>Carregando…</p>
   const d = new Date(), t0 = today()
-  const todayT = week.filter((t) => t.task_date === t0)
+  // adiadas vão para Pendentes; não realizadas saem das listas (continuam só no mural, como histórico)
+  const todayT = week.filter((t) => t.task_date === t0 && !['adiada', 'nao_realizada'].includes(t.status))
   const done = todayT.filter((t) => t.status === 'concluida').length
   const plannedToday = todayT.reduce((a, t) => a + t.est_minutes, 0)
-  const late = week.filter((t) => t.task_date < t0 && ['pendente', 'em_andamento', 'pausada', 'adiada'].includes(t.status))
+  const late = week.filter((t) => t.status === 'adiada' || (t.task_date < t0 && ['pendente', 'em_andamento', 'pausada'].includes(t.status)))
   return (
     <>
       {err && <p role="alert" className="err">{err}</p>}
@@ -35,8 +36,8 @@ export default function Dashboard({ goto }) {
       </section>
       <Goals onError={setErr} />
       {late.length > 0 && <section>
-        <h2>Pendentes e adiadas</h2>
-        <p className="muted small">Sem pressão: remarque para outro dia ou marque como não realizada.</p>
+        <h2>Pendentes</h2>
+        <p className="muted small">Adiadas e de dias anteriores. Inicie, remarque ou marque como não realizada (sai da lista).</p>
         <ul className="list">{late.map((t) => <TaskItem key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>
       </section>}
       <div className="row"><button className="ghost" onClick={() => goto('semana')}>Ver mural da semana</button><button className="primary" onClick={() => goto('exercicios')}>Registrar exercício</button></div>

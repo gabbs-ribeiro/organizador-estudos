@@ -73,7 +73,7 @@ export default function TaskItem({ t, onChange, onError, big }) {
           <select aria-label="Ações" value="" onChange={(e) => other(e.target.value)}>
             <option value="">Ações</option>
             {done ? <option value="pendente">Reabrir</option> : <>
-              <option value="adiada">Adiar</option><option value="nao_realizada">Não realizada</option>
+              {t.status !== 'adiada' && <option value="adiada">Adiar (vai para Pendentes)</option>}<option value="nao_realizada">Não realizada (remove da lista)</option>
               {t.status !== 'pendente' && <option value="pendente">Voltar para pendente</option>}</>}
           </select>
           {(running || paused || done) && <button className="ghost" onClick={() => open('note')}>Anotações</button>}
