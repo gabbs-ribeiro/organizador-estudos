@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { tasks } from '../services/api'
-import { today, iso, weekStart, addDays, DIAS, fmtMin } from '../lib/util'
+import { today, iso, weekStart, addDays, DIA_FULL, fmtMin } from '../lib/util'
 import TaskItem from '../components/TaskItem'
 import Goals from '../components/Goals'
+import { Greeting, InfoChips } from '../components/HeroInfo'
 
 export default function Dashboard({ goto }) {
   const [week, setWeek] = useState([]), [err, setErr] = useState(''), [loading, setLoading] = useState(true)
@@ -27,9 +28,12 @@ export default function Dashboard({ goto }) {
   return (
     <>
       {err && <p role="alert" className="err">{err}</p>}
-      <section className="today" aria-label="Atividades de hoje">
-        <h2>Hoje · {DIAS[d.getDay()]}, {d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</h2>
-        <p className="sub">{todayT.length ? `${done} de ${todayT.length} concluídas · ${fmtMin(plannedToday)} planejadas` : 'Nenhuma atividade planejada.'}</p>
+      <section className="today hero" aria-label="Atividades de hoje">
+        <div className="hero-top"><Greeting /><InfoChips /></div>
+        <div className="hero-sub">
+          <p>Hoje é {DIA_FULL[d.getDay()]}, essas são suas tarefas:</p>
+          <span>{todayT.length ? `${done} de ${todayT.length} concluídas · ${fmtMin(plannedToday)} planejadas` : 'Nenhuma atividade planejada'}</span>
+        </div>
         <div className="bar" aria-hidden="true"><i style={{ width: todayT.length ? `${(done / todayT.length) * 100}%` : '0%' }} /></div>
         {todayT.length === 0 ? <p className="empty">Adicione uma tarefa em Semana (Gerenciar) ou ajuste a rotina padrão.</p>
           : <ul className="list">{todayT.map((t) => <TaskItem big key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>}
