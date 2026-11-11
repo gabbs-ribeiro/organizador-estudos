@@ -29,8 +29,8 @@ export default function NoteForm({ nt, setNt, nb, setNb, subj, setSubj, titlePh,
   return (
     <>
       <label>Título da anotação<input value={nt} onChange={(e) => setNt(e.target.value)} placeholder={titlePh} /></label>
-      <label>Descrição <span className="small">(use // para comentários em verde)</span>
-        <NoteArea value={nb} onChange={(e) => setNb(e.target.value)} rows={rows || 5} placeholder="O que você fez e aprendeu" /></label>
+      <label>Descrição <span className="small">(use // para marcar comentários)</span>
+        <NoteArea value={nb} onChange={(e) => setNb(e.target.value)} rows={rows || 5} placeholder="O que você fez e aprendeu" highlight={false} /></label>
       <CadernoPick value={subj} onChange={setSubj} />
     </>
   )

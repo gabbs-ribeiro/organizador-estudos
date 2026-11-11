@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { notebook } from '../services/api'
 import { Highlighted } from './NoteArea'
-import { sanitize, decorate, caretOffset, setCaret, plainToHtml } from '../lib/richtext'
+import { sanitize, decorate, plainToHtml } from '../lib/richtext'
 
 const SIZES = [['Pequeno', 14], ['Normal', 18], ['Grande', 26], ['Título', 36], ['Enorme', 48]]
 const COLORS = ['#f3f3f3', '#6ea8ff', '#7ee0a3', '#ffd166', '#ff8a80', '#b8a8ff']
@@ -38,7 +38,7 @@ export default function NoteScreen({ note: first, subject, startEditing, onClose
   }
   const onInput = () => { // recolore os comentários "//" depois de uma pausa na digitação
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => { const o = caretOffset(ed.current); decorate(ed.current); if (o != null) setCaret(ed.current, o) }, 350)
+    timer.current = setTimeout(() => decorate(ed.current), 350)
   }
   async function save() {
     const t = title.trim(); if (!t) return setErr('Informe um título.')

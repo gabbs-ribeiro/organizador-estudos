@@ -133,6 +133,7 @@ button.entry.done{border-left-color:var(--ac)}button.entry:hover{background:#333
 .nbd,.notearea textarea{font:.95rem/1.55 ui-monospace,Menlo,Consolas,monospace;padding:.6rem .9rem;border:2px solid transparent;border-radius:18px;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;box-sizing:border-box;margin:0}
 .nbd{position:absolute;inset:0;background:var(--card2);color:var(--ink);overflow:hidden;pointer-events:none}
 .notearea textarea{position:relative;z-index:1;display:block;width:100%;background:transparent;color:transparent;caret-color:var(--ink);resize:vertical}
+.notearea textarea.plain-editor{color:var(--ink);background:var(--card2)}
 .notearea textarea::placeholder{color:var(--mut)}
 .dialog label .small{color:var(--mut)}
 /* adicionar ao caderno */

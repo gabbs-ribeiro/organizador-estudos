@@ -8,9 +8,13 @@ const dmy = (d) => (d ? d.split('-').reverse().join('/') : '')
 // Caderno: matérias (pastas) -> anotações. Clicar na matéria expande; clicar na anotação abre a tela cheia.
 export default function Notebook() {
   const [subs, setSubs] = useState([]), [notes, setNotes] = useState([]), [open, setOpen] = useState(null), [err, setErr] = useState('')
+  const [loadingSubjects, setLoadingSubjects] = useState(true)
   const [name, setName] = useState(''), [adding, setAdding] = useState(false), [screen, setScreen] = useState(null)
   const load = useCallback(async () => {
-    try { const [s, n] = await Promise.all([notebook.subjects(), notebook.notes()]); setSubs(s); setNotes(n); setErr('') } catch (e) { setErr(e.message) }
+    setErr(''); setLoadingSubjects(true)
+    const subjectsLoad = notebook.subjects().then(setSubs).catch((e) => setErr(e.message)).finally(() => setLoadingSubjects(false))
+    const notesLoad = notebook.notes().then(setNotes).catch((e) => setErr((current) => current || e.message))
+    await Promise.all([subjectsLoad, notesLoad])
   }, [])
   useEffect(() => { load() }, [load])
   const guard = async (fn) => { try { await fn(); await load() } catch (e) { setErr(/duplicate/i.test(e.message) ? 'Já existe uma matéria com esse nome.' : e.message) } }
@@ -21,7 +25,7 @@ export default function Notebook() {
       <div className="row between wrap"><h1>Caderno</h1><button className="primary" onClick={() => setAdding(!adding)}>Nova matéria</button></div>
       {adding && <form className="row addgoal" onSubmit={addSub}><input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da matéria (ex.: Java)" aria-label="Nome da matéria" /><button className="primary">Criar</button></form>}
       {err && <p role="alert" className="err">{err}</p>}
-      {subs.length === 0 ? <p className="empty">Nenhuma matéria ainda. Crie uma pasta para começar (ex.: Java, Algoritmos, Banco de dados).</p> :
+      {loadingSubjects ? <p className="empty">Carregando matérias…</p> : subs.length === 0 ? <p className="empty">Nenhuma matéria ainda. Crie uma pasta para começar (ex.: Java, Algoritmos, Banco de dados).</p> :
         subs.map((s) => {
           const list = notes.filter((n) => n.subject_id === s.id), isOpen = open === s.id
           return (
