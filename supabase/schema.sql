@@ -67,6 +67,7 @@ create table if not exists goal_logs (
   log_date date not null default current_date, note_title text, note_body text,
   created_at timestamptz not null default now(),
   unique (goal_id, log_date));
+alter table goal_logs add column if not exists actual_minutes int not null default 0 check (actual_minutes >= 0);
 create index if not exists idx_logs_user_date on goal_logs(user_id, log_date);
 
 -- Caderno: matérias (pastas) e anotações; anotações de tarefas/metas podem ser copiadas para cá.

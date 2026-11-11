@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { goals, notebook } from '../services/api'
 import NoteForm from './NoteForm'
-import { iso } from '../lib/util'
+import { fmtMin, iso } from '../lib/util'
 
 // Anel de progresso pequeno; em 100% vira um V verde.
 function Ring({ pct }) {
@@ -18,6 +18,7 @@ function Ring({ pct }) {
 export default function Goals({ onError }) {
   const [list, setList] = useState([]), [logs, setLogs] = useState([]), [ask, setAsk] = useState(null)
   const [subj, setSubj] = useState(null), [nt, setNt] = useState(''), [nb, setNb] = useState(''), [title, setTitle] = useState('')
+  const [durationHours, setDurationHours] = useState('0'), [durationMinutes, setDurationMinutes] = useState('0'), [timeErr, setTimeErr] = useState('')
   const day = iso(new Date())
   const load = useCallback(async () => {
     try { setList(await goals.list()); setLogs(await goals.logs(day, day)) } catch (e) { onError(e.message) }
@@ -25,10 +26,17 @@ export default function Goals({ onError }) {
   useEffect(() => { load() }, [load])
   const run = async (fn) => { try { await fn(); load() } catch (e) { onError(e.message) } }
   const yes = async () => {
-    const g = ask; setAsk(null)
+    const hours = Number(durationHours), minutes = Number(durationMinutes)
+    if (durationHours === '' || durationMinutes === '' || !Number.isSafeInteger(hours) || hours < 0 ||
+      !Number.isInteger(minutes) || minutes < 0 || minutes > 59 || hours * 60 + minutes > 2147483647) {
+      setTimeErr('Informe horas válidas e minutos entre 0 e 59.')
+      return
+    }
+    const g = ask
     try {
-      const log = await goals.done({ goal_id: g.id, log_date: day, note_title: nt.trim() || null, note_body: nb.trim() || null })
+      const log = await goals.done({ goal_id: g.id, log_date: day, actual_minutes: hours * 60 + minutes, note_title: nt.trim() || null, note_body: nb.trim() || null })
       if (subj && (nt.trim() || nb.trim())) await notebook.linked({ subject_id: subj, title: nt.trim() || g.title, body: nb.trim() || null, source_type: 'goal_log', source_id: log.id, source_date: day })
+      setAsk(null); setTimeErr('')
       load()
     } catch (e) { onError(e.message) }
   }
@@ -46,17 +54,22 @@ export default function Goals({ onError }) {
         <h3 className="todo-h">A fazer ({todo.length})</h3>
         {todo.length === 0 ? <p className="ok small">Tudo feito por hoje.</p> :
           <ul className="list">{todo.map((g) => <li key={g.id} className="goal todo"><div className="left">
-            <button className="chk" aria-label={`Marcar "${g.title}" como feita`} title="Marcar como feita" onClick={() => { setNt(''); setNb(''); setSubj(null); setAsk(g) }} />
+            <button className="chk" aria-label={`Marcar "${g.title}" como feita`} title="Marcar como feita" onClick={() => { setNt(''); setNb(''); setSubj(null); setDurationHours('0'); setDurationMinutes('0'); setTimeErr(''); setAsk(g) }} />
             <div className="t"><b>{g.title}</b></div></div>{X(g)}</li>)}</ul>}
         {finished.length > 0 && <>
           <h3 className="todo-h">Concluídas ({finished.length})</h3>
           <ul className="list">{finished.map((g) => { const log = logOf(g); return <li key={g.id} className="goal done"><div className="left">
             <button className="chk" aria-label={`Desfazer "${g.title}"`} title="Desfazer" onClick={() => window.confirm('Desfazer este registro e apagar a anotação?') && run(async () => { await goals.undo(log.id); await notebook.unlink('goal_log', log.id) })}><Check /></button>
-            <div className="t"><b>{g.title}</b>{log.note_title && <span className="muted small nt">· {log.note_title}</span>}</div></div>{X(g)}</li> })}</ul></>}
+            <div className="t"><b>{g.title}</b>{log.note_title && <span className="muted small nt">· {log.note_title}</span>}<span className="muted small nt">· {fmtMin(log.actual_minutes || 0)} de prática</span></div></div>{X(g)}</li> })}</ul></>}
       </>}
       <form className="row addgoal" onSubmit={add}><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nova meta" aria-label="Nova meta" /><button className="ghost">Adicionar</button></form>
       {ask && <div className="overlay"><div className="dialog" role="dialog" aria-modal="true">
         <h3>Marcar como feito?</h3><p className="muted">{ask.title}</p>
+        <div className="row wrap">
+          <label>Horas de prática<input type="number" min="0" step="1" value={durationHours} onChange={(e) => setDurationHours(e.target.value)} /></label>
+          <label>Minutos<input type="number" min="0" max="59" step="1" value={durationMinutes} onChange={(e) => setDurationMinutes(e.target.value)} /></label>
+        </div>
+        {timeErr && <p role="alert" className="err small">{timeErr}</p>}
         <NoteForm nt={nt} setNt={setNt} nb={nb} setNb={setNb} subj={subj} setSubj={setSubj} titlePh="Ex.: Two Sum" />
         <div className="row"><button className="primary" onClick={yes}>Sim</button><button className="ghost" onClick={() => setAsk(null)}>Não</button></div>
       </div></div>}

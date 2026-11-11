@@ -8,6 +8,8 @@
 5. (Opcional, para testar rápido) Em **Authentication > Providers > Email**, desative "Confirm email".
 6. `npm run dev` e abra o endereço exibido. Crie a conta, vá em **Semana** e clique em **Gerar semana pela rotina**.
 
+Para uma instalação existente, execute novamente `supabase/schema.sql` no SQL Editor do Supabase para adicionar o campo de tempo de prática às metas.
+
 ## Deploy na Vercel
 1. Suba o projeto para o GitHub (`.env` já está no `.gitignore`).
 2. Na Vercel: *Add New > Project*, importe o repositório (preset Vite).
