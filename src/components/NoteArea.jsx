@@ -11,12 +11,12 @@ export function Highlighted({ text }) {
 }
 
 // Textarea com camada de destaque por trás: texto após // fica verde enquanto você digita.
-export default function NoteArea({ value, onChange, rows = 5, placeholder }) {
+export default function NoteArea({ value, onChange, rows = 5, placeholder, highlight = true }) {
   const bd = useRef(null)
   return (
     <div className="notearea">
-      <div className="nbd" ref={bd} aria-hidden="true"><Highlighted text={value} />{'\n'}</div>
-      <textarea rows={rows} value={value} placeholder={placeholder} spellCheck="false" onChange={onChange} onScroll={(e) => { bd.current.scrollTop = e.target.scrollTop }} />
+      {highlight && <div className="nbd" ref={bd} aria-hidden="true"><Highlighted text={value} />{'\n'}</div>}
+      <textarea className={highlight ? '' : 'plain-editor'} rows={rows} value={value} placeholder={placeholder} spellCheck="false" onChange={onChange} onScroll={(e) => { if (bd.current) bd.current.scrollTop = e.target.scrollTop }} />
     </div>
   )
 }

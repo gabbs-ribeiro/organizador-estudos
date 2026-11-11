@@ -12,6 +12,7 @@ const PlayIcon = () => <svg viewBox="0 0 24 24" width="22" height="22" fill="cur
 // Tempo: calculado automaticamente do início ao fim; o tempo pausado não conta.
 export default function TaskItem({ t, onChange, onError, big }) {
   const [ask, setAsk] = useState(null), [subj, setSubj] = useState(null), [nt, setNt] = useState(''), [nb, setNb] = useState('')
+  const [manualTime, setManualTime] = useState(false), [manualHours, setManualHours] = useState('0'), [manualMinutes, setManualMinutes] = useState('0'), [timeErr, setTimeErr] = useState('')
   const running = t.status === 'em_andamento', paused = t.status === 'pausada', done = t.status === 'concluida'
   const totals = () => ({
     w: (t.work_seconds || 0) + (running ? secsSince(t.segment_started_at) : 0),
@@ -19,7 +20,11 @@ export default function TaskItem({ t, onChange, onError, big }) {
   })
   async function patch(p) { try { await tasks.update(t.id, p); onChange(); return true } catch (e) { onError(e.message); return false } }
   function open(kind) {
-    setNt(t.note_title || ''); setNb(t.note_body || ''); setSubj(null); setAsk(kind)
+    setNt(t.note_title || ''); setNb(t.note_body || ''); setSubj(null); setAsk(kind); setTimeErr('')
+    if (kind === 'finish') {
+      const minutes = Math.round(totals().w / 60)
+      setManualTime(false); setManualHours(String(Math.floor(minutes / 60))); setManualMinutes(String(minutes % 60))
+    }
     if (kind !== 'start') notebook.bySource('task', t.id).then((n) => n && setSubj(n.subject_id)).catch(() => {})
   }
   // "Adicionar ao caderno": copia/atualiza a anotação na matéria escolhida (sem duplicar); sem matéria, remove o vínculo
@@ -34,12 +39,22 @@ export default function TaskItem({ t, onChange, onError, big }) {
   const pause = () => patch({ status: 'pausada', work_seconds: totals().w, segment_started_at: nowIso() })
   const resume = () => patch({ status: 'em_andamento', paused_seconds: totals().p, segment_started_at: nowIso() })
   async function yes() {
-    const kind = ask; setAsk(null)
+    const kind = ask
+    let actualMinutes
+    if (kind === 'finish' && manualTime) {
+      const hours = Number(manualHours), minutes = Number(manualMinutes)
+      if (manualHours === '' || manualMinutes === '' || !Number.isSafeInteger(hours) || hours < 0 || !Number.isInteger(minutes) || minutes < 0 || minutes > 59) {
+        setTimeErr('Informe horas válidas e minutos entre 0 e 59.')
+        return
+      }
+      actualMinutes = hours * 60 + minutes
+    }
+    setAsk(null)
     let ok
     if (kind === 'start') ok = await patch({ status: 'em_andamento', work_seconds: 0, paused_seconds: 0, segment_started_at: nowIso() })
     else if (kind === 'finish') {
       const { w, p } = totals() // tempo calculado do início ao fim, sem as pausas
-      ok = await patch({ status: 'concluida', work_seconds: w, paused_seconds: p, segment_started_at: null, actual_minutes: Math.round(w / 60), ...notes() })
+      ok = await patch({ status: 'concluida', work_seconds: w, paused_seconds: p, segment_started_at: null, actual_minutes: manualTime ? actualMinutes : Math.round(w / 60), ...notes() })
     } else ok = await patch(notes())
     if (ok && kind !== 'start') syncNotebook()
   }
@@ -55,13 +70,13 @@ export default function TaskItem({ t, onChange, onError, big }) {
   const started = Boolean(t.start_time) && (t.task_date < iso(now) || (t.task_date === iso(now) && nowMin >= sh * 60 + sm))
   const late = t.status === 'pendente' && started
   const { w, p } = totals()
-  const tracked = running || paused || w > 0 || p > 0
+  const activeTimer = running || paused
   const title = { start: 'Iniciar esta atividade?', finish: 'Finalizar esta atividade?', note: 'Anotações da atividade' }[ask]
   return (
     <li className={`task st-${t.status}${big ? ' big' : ''}`}>
       <div><b>{t.title}</b> <span className="pill">{STATUS[t.status]}</span>
-        <div className="muted">{t.start_time && `${t.start_time.slice(0, 5)} · `}{TASK_CATS[t.category] || t.category} · {fmtMin(t.est_minutes)} previstos{t.actual_minutes != null && !tracked && ` · ${fmtMin(t.actual_minutes)} reais`}</div>
-        {tracked && <p className="small muted">Em atividade {fmtDur(w)} · Pausado {fmtDur(p)}</p>}
+        <div className="muted">{t.start_time && `${t.start_time.slice(0, 5)} · `}{TASK_CATS[t.category] || t.category} · {fmtMin(t.est_minutes)} previstos{t.actual_minutes != null && !activeTimer && ` · ${fmtMin(t.actual_minutes)} reais`}</div>
+        {activeTimer && <p className="small muted">Em atividade {fmtDur(w)} · Pausado {fmtDur(p)}</p>}
         {t.description && <p className="muted small">{m && <span className={`tm ${late ? 'late' : 'on'}`}>{m[0]}</span>}{m && rest ? ' · ' : ''}{rest}</p>}
         {t.note_title && <p className="small note-t">Anotação: {t.note_title}</p>}</div>
       <div className="actions">
@@ -84,7 +99,16 @@ export default function TaskItem({ t, onChange, onError, big }) {
         <div className="dialog" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
           <h3>{title}</h3>
           <p className="muted">{t.title}</p>
-          {ask === 'finish' && <div className="timebox"><span className="muted small">Tempo em atividade (calculado automaticamente)</span><big>{fmtDur(w)}</big><span className="muted small">Pausado: {fmtDur(p)} (a pausa não conta)</span></div>}
+          {ask === 'finish' && <div className="timebox">
+            <span className="muted small">Tempo em atividade registrado</span><big>{fmtDur(w)}</big><span className="muted small">Pausado: {fmtDur(p)} (a pausa não conta)</span>
+            <label className="chk-row"><input type="radio" name={`time-${t.id}`} checked={!manualTime} onChange={() => { setManualTime(false); setTimeErr('') }} /> Usar tempo registrado</label>
+            <label className="chk-row"><input type="radio" name={`time-${t.id}`} checked={manualTime} onChange={() => { setManualTime(true); setTimeErr('') }} /> Informar outro tempo</label>
+            {manualTime && <div className="row wrap">
+              <label>Horas<input type="number" min="0" step="1" value={manualHours} onChange={(e) => setManualHours(e.target.value)} /></label>
+              <label>Minutos<input type="number" min="0" max="59" step="1" value={manualMinutes} onChange={(e) => setManualMinutes(e.target.value)} /></label>
+            </div>}
+            {timeErr && <p role="alert" className="err small">{timeErr}</p>}
+          </div>}
           {ask !== 'start' && <NoteForm nt={nt} setNt={setNt} nb={nb} setNb={setNb} subj={subj} setSubj={setSubj} titlePh="Sobre o que foi esta atividade?" />}
           <div className="row"><button className="primary" onClick={yes}>{ask === 'note' ? 'Salvar' : 'Sim'}</button><button className="ghost" onClick={() => setAsk(null)}>{ask === 'note' ? 'Cancelar' : 'Não'}</button></div>
         </div></div>}

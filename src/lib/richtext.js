@@ -33,6 +33,16 @@ export function sanitize(html) {
 
 // Pinta de verde tudo que vem depois de "//" (até o fim do trecho de texto), sem mexer nas outras formatações.
 export function decorate(root) {
+  const selection = getSelection()
+  let marker = null
+  if (selection.rangeCount && root.contains(selection.anchorNode)) {
+    const range = selection.getRangeAt(0)
+    if (range.collapsed) {
+      marker = document.createElement('span')
+      marker.appendChild(document.createTextNode('\u200b'))
+      range.insertNode(marker)
+    }
+  }
   root.querySelectorAll('span.cm').forEach((sp) => sp.replaceWith(...sp.childNodes))
   root.normalize()
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = []
@@ -42,18 +52,12 @@ export function decorate(root) {
     const rest = n.splitText(i), sp = document.createElement('span')
     sp.className = 'cm'; rest.replaceWith(sp); sp.appendChild(rest)
   })
-}
-
-export function caretOffset(root) {
-  const s = getSelection()
-  if (!s.rangeCount || !root.contains(s.anchorNode)) return null
-  const r = document.createRange(); r.selectNodeContents(root); r.setEnd(s.anchorNode, s.anchorOffset)
-  return r.toString().length
-}
-export function setCaret(root, off) {
-  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n, left = off
-  while ((n = w.nextNode())) {
-    if (left <= n.length) { const r = document.createRange(); r.setStart(n, left); r.collapse(true); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return }
-    left -= n.length
+  if (marker) {
+    const range = document.createRange()
+    range.setStart(marker.firstChild, 0)
+    range.collapse(true)
+    marker.remove()
+    selection.removeAllRanges()
+    selection.addRange(range)
   }
 }

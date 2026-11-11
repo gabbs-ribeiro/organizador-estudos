@@ -10,7 +10,7 @@ function Entry({ title, sub, done, onOpen }) {
 }
 
 const metaOf = (t) => [TASK_CATS[t.category] || t.category, `${fmtMin(t.est_minutes)} previstos`,
-  t.work_seconds > 0 ? `Em atividade ${fmtDur(t.work_seconds)}` : t.actual_minutes != null ? `${fmtMin(t.actual_minutes)} reais` : null,
+  t.actual_minutes != null ? `${fmtMin(t.actual_minutes)} reais` : t.work_seconds > 0 ? `Em atividade ${fmtDur(t.work_seconds)}` : null,
   t.paused_seconds > 0 ? `Pausado ${fmtDur(t.paused_seconds)}` : null].filter(Boolean).join(' · ')
 
 export default function Week() {
