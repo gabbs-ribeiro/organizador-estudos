@@ -14,19 +14,15 @@ const metaOf = (t) => [TASK_CATS[t.category] || t.category, `${fmtMin(t.est_minu
   t.paused_seconds > 0 ? `Pausado ${fmtDur(t.paused_seconds)}` : null].filter(Boolean).join(' · ')
 
 export default function Week() {
-  const [off, setOff] = useState(0), [list, setList] = useState([]), [logs, setLogs] = useState([]), [recentTasks, setRecentTasks] = useState([]), [recentLogs, setRecentLogs] = useState([]), [rt, setRt] = useState([]), [err, setErr] = useState(''), [msg, setMsg] = useState(''), [view, setView] = useState(null), [editing, setEditing] = useState(null)
+  const [off, setOff] = useState(0), [list, setList] = useState([]), [logs, setLogs] = useState([]), [rt, setRt] = useState([]), [err, setErr] = useState(''), [msg, setMsg] = useState(''), [view, setView] = useState(null), [editing, setEditing] = useState(null)
   const start = addDays(weekStart(), off * 7)
-  const recentEnd = today(), recentStart = iso(addDays(new Date(`${recentEnd}T12:00:00`), -6))
   const load = useCallback(async () => {
     try {
       const a = iso(start), b = iso(addDays(start, 6))
-      const [t, l, r, rtasks, rlogs] = await Promise.all([
-        tasks.range(a, b), goals.logs(a, b), routines.list(),
-        tasks.range(recentStart, recentEnd), goals.logs(recentStart, recentEnd),
-      ])
-      setList(t); setLogs(l); setRecentTasks(rtasks); setRecentLogs(rlogs); setRt(r); setErr('')
+      const [t, l, r] = await Promise.all([tasks.range(a, b), goals.logs(a, b), routines.list()])
+      setList(t); setLogs(l); setRt(r); setErr('')
     } catch (e) { setErr(e.message) }
-  }, [off, recentStart, recentEnd])
+  }, [off]) // eslint-disable-line
   useEffect(() => { load() }, [load])
   async function add(e) {
     e.preventDefault(); const f = new FormData(e.target)
@@ -37,19 +33,20 @@ export default function Week() {
   const catOpts = Object.entries(TASK_CATS).map(([k, v]) => <option key={k} value={k}>{v}</option>)
   const minutesOfTasks = (items) => items.reduce((sum, task) => sum + (task.actual_minutes || 0), 0)
   const minutesOfLogs = (items) => items.reduce((sum, log) => sum + (log.actual_minutes || 0), 0)
-  const recentTheory = minutesOfTasks(recentTasks.filter((task) => task.status !== 'nao_realizada'))
-  const recentPractice = minutesOfLogs(recentLogs)
-  const recentTotal = recentTheory + recentPractice
+  const weekTasks = list.filter((task) => task.status !== 'nao_realizada')
+  const theoryMinutes = minutesOfTasks(weekTasks)
+  const practiceMinutes = minutesOfLogs(logs)
+  const totalMinutes = theoryMinutes + practiceMinutes
   return (
     <>
       <div className="row between wrap"><h1>Mural da semana</h1>
-        <div className="row"><button className="ghost" onClick={() => setOff(off - 1)}>Anterior</button><button className="ghost" onClick={() => setOff(0)}>Atual</button><button className="ghost" onClick={() => setOff(off + 1)}>Próxima</button></div></div>
+        <div className="row"><button className="ghost" onClick={() => setOff(off - 1)}>Anterior</button><button className="ghost" onClick={() => setOff(off + 1)}>Próxima</button></div></div>
       <p className="muted">{start.toLocaleDateString('pt-BR')} a {addDays(start, 6).toLocaleDateString('pt-BR')}</p>
       {err && <p role="alert" className="err">{err}</p>}{msg && <p role="status" className="ok">{msg}</p>}
-      <section className="study-summary" aria-label="Tempo de estudo nos últimos sete dias">
-        <article className="study-stat study-total"><span className="muted small">Tempo de estudo</span><strong>{fmtMin(recentTotal)}</strong><span className="muted small">Últimos 7 dias</span></article>
-        <article className="study-stat"><span className="muted small">Estudo teórico</span><strong>{fmtMin(recentTheory)}</strong><span className="muted small">Tarefas registradas</span></article>
-        <article className="study-stat study-practice"><span className="muted small">Tempo de prática</span><strong>{fmtMin(recentPractice)}</strong><span className="muted small">Metas concluídas</span></article>
+      <section className="study-summary" aria-label="Tempo de estudo da semana selecionada">
+        <article className="study-stat study-total"><span className="muted small">Tempo de estudo</span><strong>{fmtMin(totalMinutes)}</strong><span className="muted small">Semana selecionada</span></article>
+        <article className="study-stat"><span className="muted small">Estudo teórico</span><strong>{fmtMin(theoryMinutes)}</strong><span className="muted small">Tarefas registradas</span></article>
+        <article className="study-stat study-practice"><span className="muted small">Tempo de prática</span><strong>{fmtMin(practiceMinutes)}</strong><span className="muted small">Metas concluídas</span></article>
       </section>
       <div className="mural">
         {DIAS.map((n, i) => {
