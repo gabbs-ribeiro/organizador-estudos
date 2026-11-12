@@ -20,6 +20,14 @@ export default function Notebook() {
   const guard = async (fn) => { try { await fn(); await load() } catch (e) { setErr(/duplicate/i.test(e.message) ? 'Já existe uma matéria com esse nome.' : e.message) } }
   const addSub = (e) => { e.preventDefault(); const n = name.trim(); if (!n) return; guard(async () => { const s = await notebook.addSubject(n); setOpen(s.id); setName(''); setAdding(false) }) }
   const delSub = (s, count) => window.confirm(`Excluir a matéria "${s.name}" e suas ${count} anotações? Isso não pode ser desfeito.`) && guard(() => notebook.removeSubject(s.id))
+  const moveNote = async (id, subjectId) => {
+    const moved = await notebook.moveNote(id, subjectId)
+    const subject = subs.find((s) => s.id === subjectId)
+    setScreen((current) => current?.note.id === id ? { ...current, note: moved, subject } : current)
+    setOpen(subjectId)
+    await load()
+    return moved
+  }
   return (
     <>
       <div className="row between wrap"><h1>Caderno</h1><button className="primary" onClick={() => setAdding(!adding)}>Nova matéria</button></div>
@@ -41,8 +49,8 @@ export default function Notebook() {
               </div>}
             </section>)
         })}
-      {screen && <NoteScreen key={screen.note.id || 'nova'} note={screen.note} subject={screen.subject} startEditing={screen.editing}
-        onClose={() => setScreen(null)} onChanged={load} onDelete={(id) => { setScreen(null); guard(() => notebook.removeNote(id)) }} />}
+      {screen && <NoteScreen key={screen.note.id || 'nova'} note={screen.note} subject={screen.subject} subjects={subs} startEditing={screen.editing}
+        onClose={() => setScreen(null)} onChanged={load} onMove={moveNote} onDelete={(id) => { setScreen(null); guard(() => notebook.removeNote(id)) }} />}
     </>
   )
 }
