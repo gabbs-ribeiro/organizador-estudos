@@ -44,13 +44,6 @@ export default function Dashboard({ goto }) {
         {todayT.length === 0 ? <p className="empty">Adicione uma tarefa em Semana (Gerenciar) ou ajuste a rotina padrão.</p>
           : <ul className="list">{todayT.map((t) => <TaskItem big key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>}
       </section>
-      <Goals onError={setErr} onSummary={reportGoals} />
-      {late.length > 0 && <section>
-        <h2>Pendentes</h2>
-        <p className="muted small">Adiadas e de dias anteriores. Inicie, remarque ou marque como não realizada (sai da lista).</p>
-        <ul className="list">{late.map((t) => <TaskItem key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>
-      </section>}
-      <div className="row"><button className="ghost" onClick={() => goto('semana')}>Ver mural da semana</button><button className="primary" onClick={() => goto('exercicios')}>Registrar exercício</button></div>
       <section className="card home-study-panel" aria-label="Resumo das horas de estudo de hoje">
         <div className="home-study-head"><h2>Estudos de hoje</h2><span className="muted small">Tempo realizado e meta diária</span></div>
         <div className="home-study-grid">
@@ -60,6 +53,13 @@ export default function Dashboard({ goto }) {
           <article className="study-stat study-target"><span className="muted small">Meta de hoje</span><strong>{goalSummary.count === null ? '—' : fmtMin(targetMinutes)}</strong><span className="muted small">{goalSummary.count ?? '…'} metas × 30 min + {fmtMin(plannedToday)} previstos</span></article>
         </div>
       </section>
+      <Goals onError={setErr} onSummary={reportGoals} />
+      {late.length > 0 && <section>
+        <h2>Pendentes</h2>
+        <p className="muted small">Adiadas e de dias anteriores. Inicie, remarque ou marque como não realizada (sai da lista).</p>
+        <ul className="list">{late.map((t) => <TaskItem key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>
+      </section>}
+      <div className="row"><button className="ghost" onClick={() => goto('semana')}>Ver mural da semana</button><button className="primary" onClick={() => goto('exercicios')}>Registrar exercício</button></div>
     </>
   )
 }
