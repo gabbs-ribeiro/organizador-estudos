@@ -13,7 +13,7 @@ const Pencil = () => <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
 export default function NoteScreen({ note: first, subject, subjects, startEditing, onClose, onChanged, onMove, onDelete }) {
   const [note, setNote] = useState(first), [editing, setEditing] = useState(Boolean(startEditing)), [title, setTitle] = useState(first.title)
   const [err, setErr] = useState(''), [hint, setHint] = useState('')
-  const [destinationId, setDestinationId] = useState(''), [moving, setMoving] = useState(false)
+  const [destinationId, setDestinationId] = useState(''), [moving, setMoving] = useState(false), [showMoveDialog, setShowMoveDialog] = useState(false)
   const ed = useRef(null), timer = useRef(null)
   useEffect(() => setDestinationId(''), [subject.id])
   useEffect(() => {
@@ -23,9 +23,13 @@ export default function NoteScreen({ note: first, subject, subjects, startEditin
   }, [editing]) // eslint-disable-line
   useEffect(() => {
     if (editing) return
-    const k = (e) => e.key === 'Escape' && onClose()
+    const k = (e) => {
+      if (e.key !== 'Escape') return
+      if (showMoveDialog && !moving) { setShowMoveDialog(false); setDestinationId(''); setErr('') }
+      else if (!showMoveDialog) onClose()
+    }
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
-  }, [editing, onClose])
+  }, [editing, onClose, showMoveDialog, moving])
 
   const flash = (m) => { setHint(m); setTimeout(() => setHint(''), 2200) }
   const hasSelection = () => { const s = getSelection(); return s.rangeCount > 0 && !s.isCollapsed && ed.current.contains(s.anchorNode) }
@@ -54,10 +58,15 @@ export default function NoteScreen({ note: first, subject, subjects, startEditin
   async function move() {
     if (!destinationId) return
     setMoving(true); setErr('')
-    try { setNote(await onMove(note.id, destinationId)); setDestinationId('') }
+    try {
+      setNote(await onMove(note.id, destinationId))
+      setDestinationId('')
+      setShowMoveDialog(false)
+    }
     catch (e) { setErr(e.message) }
     finally { setMoving(false) }
   }
+  const closeMoveDialog = () => { if (!moving) { setShowMoveDialog(false); setDestinationId(''); setErr('') } }
   const date = dmy(note.source_date || (note.created_at || '').slice(0, 10))
   return (
     <div className="screen">
@@ -72,20 +81,32 @@ export default function NoteScreen({ note: first, subject, subjects, startEditin
       <main className="swrap">
         <span className="pill">{subject.name} · {SRC[note.source_type] || 'Anotação'}{date && ` · ${date}`}</span>
         {!editing && note.id && subjects.some((s) => s.id !== subject.id) && <div className="note-move">
-          <select aria-label="Transferir anotação para outra matéria" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
-            <option value="">Transferir para…</option>
-            {subjects.filter((s) => s.id !== subject.id).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <button className="ghost" onClick={move} disabled={!destinationId || moving}>{moving ? 'Transferindo…' : 'Transferir'}</button>
+          <button className="ghost" onClick={() => { setDestinationId(''); setErr(''); setShowMoveDialog(true) }}>Transferir</button>
         </div>}
         {editing ? <input className="stitle" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" aria-label="Título" /> : <h1 className="sh1">{note.title}</h1>}
-        {err && <p role="alert" className="err">{err}</p>}
+        {err && !showMoveDialog && <p role="alert" className="err">{err}</p>}
         {editing
           ? <div ref={ed} className="editor" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label="Texto da anotação" onInput={onInput}
               onPaste={(e) => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')) }} />
           : note.body_html ? <div className="rich" dangerouslySetInnerHTML={{ __html: sanitize(note.body_html) }} />
           : note.body ? <div className="plain"><Highlighted text={note.body} /></div> : <p className="muted">Sem descrição.</p>}
       </main>
+      {showMoveDialog && <div className="overlay" onClick={closeMoveDialog}>
+        <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="move-note-title" onClick={(e) => e.stopPropagation()}>
+          <h3 id="move-note-title">Transferir anotação</h3>
+          <label>Matéria de destino
+            <select autoFocus value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
+              <option value="">Escolha uma matéria</option>
+              {subjects.filter((s) => s.id !== subject.id).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </label>
+          {err && <p role="alert" className="err">{err}</p>}
+          <div className="row wrap">
+            <button className="ghost" onClick={closeMoveDialog} disabled={moving}>Cancelar</button>
+            <button className="primary" onClick={move} disabled={!destinationId || moving}>{moving ? 'Transferindo…' : 'Confirmar'}</button>
+          </div>
+        </div>
+      </div>}
       {editing && <>
         {hint && <div className="hint" role="status">{hint}</div>}
         <div className="tools" aria-label="Ferramentas de texto" onMouseDown={(e) => e.preventDefault()}>
