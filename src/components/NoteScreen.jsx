@@ -10,10 +10,12 @@ const dmy = (d) => (d ? d.split('-').reverse().join('/') : '')
 const Pencil = () => <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
 
 // Anotação em tela cheia: leitura; lápis liga a edição com barra de ferramentas (formatação só no texto selecionado).
-export default function NoteScreen({ note: first, subject, startEditing, onClose, onChanged, onDelete }) {
+export default function NoteScreen({ note: first, subject, subjects, startEditing, onClose, onChanged, onMove, onDelete }) {
   const [note, setNote] = useState(first), [editing, setEditing] = useState(Boolean(startEditing)), [title, setTitle] = useState(first.title)
   const [err, setErr] = useState(''), [hint, setHint] = useState('')
+  const [destinationId, setDestinationId] = useState(''), [moving, setMoving] = useState(false)
   const ed = useRef(null), timer = useRef(null)
+  useEffect(() => setDestinationId(''), [subject.id])
   useEffect(() => {
     if (!editing || !ed.current) return
     ed.current.innerHTML = note.body_html ? sanitize(note.body_html) : plainToHtml(note.body)
@@ -49,6 +51,13 @@ export default function NoteScreen({ note: first, subject, startEditing, onClose
     } catch (e) { setErr(e.message) }
   }
   const del = () => window.confirm(`Excluir a anotação "${note.title}"?`) && onDelete(note.id)
+  async function move() {
+    if (!destinationId) return
+    setMoving(true); setErr('')
+    try { setNote(await onMove(note.id, destinationId)); setDestinationId('') }
+    catch (e) { setErr(e.message) }
+    finally { setMoving(false) }
+  }
   const date = dmy(note.source_date || (note.created_at || '').slice(0, 10))
   return (
     <div className="screen">
@@ -62,6 +71,13 @@ export default function NoteScreen({ note: first, subject, startEditing, onClose
       </header>
       <main className="swrap">
         <span className="pill">{subject.name} · {SRC[note.source_type] || 'Anotação'}{date && ` · ${date}`}</span>
+        {!editing && note.id && subjects.some((s) => s.id !== subject.id) && <div className="note-move">
+          <select aria-label="Transferir anotação para outra matéria" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
+            <option value="">Transferir para…</option>
+            {subjects.filter((s) => s.id !== subject.id).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <button className="ghost" onClick={move} disabled={!destinationId || moving}>{moving ? 'Transferindo…' : 'Transferir'}</button>
+        </div>}
         {editing ? <input className="stitle" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" aria-label="Título" /> : <h1 className="sh1">{note.title}</h1>}
         {err && <p role="alert" className="err">{err}</p>}
         {editing

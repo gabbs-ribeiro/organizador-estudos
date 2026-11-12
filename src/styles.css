@@ -167,6 +167,7 @@ button.entry.done{border-left-color:var(--ac)}button.entry:hover{background:#333
 .screen{position:fixed;inset:0;z-index:70;background:var(--bg);overflow:auto}
 .sbar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.7rem 1rem;background:var(--bg);border-bottom:1px solid var(--line)}
 .swrap{max-width:780px;margin:0 auto;padding:1.2rem 1.2rem 8rem}
+.note-move{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.8rem}
 .sh1{font-size:2.3rem;font-weight:300;line-height:1.15;margin:.8rem 0 1.2rem;letter-spacing:-.02em;overflow-wrap:anywhere}
 .stitle{width:100%;font-size:1.8rem;font-weight:300;margin:.8rem 0 1rem}
 .rich,.plain,.editor{font-size:18px;line-height:1.6;overflow-wrap:anywhere}.plain{white-space:pre-wrap}
