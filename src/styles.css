@@ -88,6 +88,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .study-stat{display:flex;flex-direction:column;gap:.2rem;background:var(--card);border-radius:22px;padding:1rem 1.2rem;border:1px solid var(--line)}
 .study-stat strong{font-size:1.8rem;font-weight:400;line-height:1.2}
 .study-total{border-color:rgba(110,168,255,.55)}.study-practice{border-color:rgba(127,109,242,.5)}
+.home-study-panel{margin:1rem 0}.home-study-head{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;flex-wrap:wrap}.home-study-head h2{margin:0}
+.home-study-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem;margin-top:.8rem}
+.home-study-grid .study-stat{background:var(--card2);padding:1rem}
+.study-target{border-color:rgba(126,224,163,.5)}
 .day{background:var(--card);border-radius:var(--r);padding:1.2rem;border:2px solid transparent}.day.now{border-color:var(--ac)}
 .day h2{margin:0 0 .6rem;font-size:1.3rem;font-weight:400}
 .day-study{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;background:var(--card2);border-radius:16px;padding:.7rem;margin-bottom:.9rem}
@@ -104,6 +108,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .sec{flex-wrap:wrap}.sec>*{flex:1 1 0;min-width:96px}.sec input[type=date]{flex:1.4 1 0;min-width:130px}
   .mural{grid-template-columns:1fr}
   .study-summary{grid-template-columns:1fr}.study-stat{padding:.8rem 1rem}.study-stat strong{font-size:1.5rem}
+  .home-study-grid{grid-template-columns:1fr}
 }
 /* metas como to-do list */
 .goals-head{display:flex;align-items:center;gap:.8rem;margin-bottom:.4rem}.goals-head h2{margin:0;line-height:1.1}

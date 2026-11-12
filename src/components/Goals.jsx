@@ -15,14 +15,18 @@ function Ring({ pct }) {
 }
 
 // Metas: lista "a fazer" / "concluídas" de hoje. "Feito" abre confirmação com título e descrição da anotação.
-export default function Goals({ onError }) {
+export default function Goals({ onError, onSummary }) {
   const [list, setList] = useState([]), [logs, setLogs] = useState([]), [ask, setAsk] = useState(null)
   const [subj, setSubj] = useState(null), [nt, setNt] = useState(''), [nb, setNb] = useState(''), [title, setTitle] = useState('')
   const [durationHours, setDurationHours] = useState('0'), [durationMinutes, setDurationMinutes] = useState('0'), [timeErr, setTimeErr] = useState('')
   const day = iso(new Date())
   const load = useCallback(async () => {
-    try { setList(await goals.list()); setLogs(await goals.logs(day, day)) } catch (e) { onError(e.message) }
-  }, [day, onError])
+    try {
+      const [active, todayLogs] = await Promise.all([goals.list(), goals.logs(day, day)])
+      setList(active); setLogs(todayLogs)
+      onSummary?.(active.length, todayLogs.reduce((sum, log) => sum + (log.actual_minutes || 0), 0))
+    } catch (e) { onError(e.message) }
+  }, [day, onError, onSummary])
   useEffect(() => { load() }, [load])
   const run = async (fn) => { try { await fn(); load() } catch (e) { onError(e.message) } }
   const yes = async () => {
