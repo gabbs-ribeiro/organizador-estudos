@@ -7,6 +7,8 @@ import { Greeting, InfoChips } from '../components/HeroInfo'
 
 export default function Dashboard({ goto }) {
   const [week, setWeek] = useState([]), [err, setErr] = useState(''), [loading, setLoading] = useState(true)
+  const [goalSummary, setGoalSummary] = useState({ count: null, practiceMinutes: 0 })
+  const reportGoals = useCallback((count, practiceMinutes) => setGoalSummary({ count, practiceMinutes }), [])
   const load = useCallback(async () => {
     try {
       const s = weekStart()
@@ -24,6 +26,10 @@ export default function Dashboard({ goto }) {
   const todayT = week.filter((t) => t.task_date === t0 && !['adiada', 'nao_realizada'].includes(t.status))
   const done = todayT.filter((t) => t.status === 'concluida').length
   const plannedToday = todayT.reduce((a, t) => a + t.est_minutes, 0)
+  const todayTasks = week.filter((t) => t.task_date === t0 && t.status !== 'nao_realizada')
+  const theoryMinutes = todayTasks.reduce((sum, t) => sum + (t.actual_minutes || 0), 0)
+  const totalMinutes = theoryMinutes + goalSummary.practiceMinutes
+  const targetMinutes = plannedToday + (goalSummary.count || 0) * 30
   const late = week.filter((t) => t.status === 'adiada' || (t.task_date < t0 && ['pendente', 'em_andamento', 'pausada'].includes(t.status)))
   return (
     <>
@@ -38,13 +44,22 @@ export default function Dashboard({ goto }) {
         {todayT.length === 0 ? <p className="empty">Adicione uma tarefa em Semana (Gerenciar) ou ajuste a rotina padrão.</p>
           : <ul className="list">{todayT.map((t) => <TaskItem big key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>}
       </section>
-      <Goals onError={setErr} />
+      <Goals onError={setErr} onSummary={reportGoals} />
       {late.length > 0 && <section>
         <h2>Pendentes</h2>
         <p className="muted small">Adiadas e de dias anteriores. Inicie, remarque ou marque como não realizada (sai da lista).</p>
         <ul className="list">{late.map((t) => <TaskItem key={t.id} t={t} onChange={load} onError={setErr} />)}</ul>
       </section>}
       <div className="row"><button className="ghost" onClick={() => goto('semana')}>Ver mural da semana</button><button className="primary" onClick={() => goto('exercicios')}>Registrar exercício</button></div>
+      <section className="card home-study-panel" aria-label="Resumo das horas de estudo de hoje">
+        <div className="home-study-head"><h2>Estudos de hoje</h2><span className="muted small">Tempo realizado e meta diária</span></div>
+        <div className="home-study-grid">
+          <article className="study-stat study-total"><span className="muted small">Tempo total</span><strong>{fmtMin(totalMinutes)}</strong><span className="muted small">Teórico + prática</span></article>
+          <article className="study-stat"><span className="muted small">Estudo teórico</span><strong>{fmtMin(theoryMinutes)}</strong><span className="muted small">Tarefas realizadas</span></article>
+          <article className="study-stat study-practice"><span className="muted small">Prática</span><strong>{fmtMin(goalSummary.practiceMinutes)}</strong><span className="muted small">Metas concluídas</span></article>
+          <article className="study-stat study-target"><span className="muted small">Meta de hoje</span><strong>{goalSummary.count === null ? '—' : fmtMin(targetMinutes)}</strong><span className="muted small">{goalSummary.count ?? '…'} metas × 30 min + {fmtMin(plannedToday)} previstos</span></article>
+        </div>
+      </section>
     </>
   )
 }
