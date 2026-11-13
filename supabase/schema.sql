@@ -58,8 +58,9 @@ alter table study_tasks add constraint study_tasks_status_check check (status in
 create table if not exists study_goals (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  title text not null, active boolean not null default true,
+  title text not null, active boolean not null default true, position integer not null default 0,
   created_at timestamptz not null default now());
+alter table study_goals add column if not exists position integer not null default 0;
 create table if not exists goal_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
