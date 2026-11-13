@@ -132,6 +132,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 button.chk{background:none;padding:0;cursor:pointer;color:transparent;width:26px;height:26px}button.chk:hover{border-color:var(--ac)}
 .goal.done button.chk{color:#06231f}.goal.done button.chk:hover{border-color:var(--ok);opacity:.8}
 .goal .x{background:none;border:0;padding:.1rem .5rem;font-size:1.1rem;line-height:1;color:var(--mut);flex:none}.goal .x:hover{color:var(--err);background:none}
+.goal.dragging{opacity:.45}.goal.drag-over{outline:2px solid var(--ac)}
+.goal-actions{display:flex;align-items:center;gap:.15rem;flex:none}
+.goal-drag,.goal-move{background:none;border:0;color:var(--mut);padding:.25rem;line-height:1;cursor:pointer}
+.goal-drag{font-size:1.15rem;cursor:grab}.goal-drag:active{cursor:grabbing}
+.goal-move{font-size:1rem;border-radius:8px}.goal-move:hover:not(:disabled){background:var(--card);color:var(--ink)}.goal-move:disabled{opacity:.3;cursor:default}
+.goal-order-hint{margin:.45rem 0}
 /* tempo automático e leitor de anotações */
 .timebox{background:var(--card2);border-radius:18px;padding:.8rem 1rem;display:flex;flex-direction:column}.timebox big{font-size:2rem;margin-top:.2rem}
 button.entry{display:flex;flex-direction:column;width:100%;text-align:left;border:0;border-left:4px solid transparent;color:inherit;font:inherit;cursor:pointer}

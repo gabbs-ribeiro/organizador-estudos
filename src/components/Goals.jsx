@@ -19,6 +19,7 @@ export default function Goals({ onError, onSummary }) {
   const [list, setList] = useState([]), [logs, setLogs] = useState([]), [ask, setAsk] = useState(null)
   const [subj, setSubj] = useState(null), [nt, setNt] = useState(''), [nb, setNb] = useState(''), [title, setTitle] = useState('')
   const [durationHours, setDurationHours] = useState('0'), [durationMinutes, setDurationMinutes] = useState('0'), [timeErr, setTimeErr] = useState('')
+  const [dragged, setDragged] = useState(null), [dragTarget, setDragTarget] = useState(null)
   const day = iso(new Date())
   const load = useCallback(async () => {
     try {
@@ -47,24 +48,68 @@ export default function Goals({ onError, onSummary }) {
   const add = (e) => { e.preventDefault(); if (!title.trim()) return; run(() => goals.add(title.trim())); setTitle('') }
   const logOf = (g) => logs.find((l) => l.goal_id === g.id)
   const todo = list.filter((g) => !logOf(g)), finished = list.filter((g) => logOf(g))
+  const reorder = async (group, sourceId, targetId) => {
+    const items = group === 'todo' ? todo : finished
+    const from = items.findIndex((g) => g.id === sourceId), to = items.findIndex((g) => g.id === targetId)
+    if (from < 0 || to < 0 || from === to) return
+    const reordered = [...items], [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+    const next = group === 'todo' ? [...reordered, ...finished] : [...todo, ...reordered]
+    setList(next)
+    try { await goals.reorder(next.map((g) => g.id)) } catch (e) { onError(e.message); load() }
+  }
+  const moveBy = (group, items, index, offset) => {
+    const target = items[index + offset]
+    if (target) reorder(group, items[index].id, target.id)
+  }
+  const startDrag = (e, g, group) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', g.id)
+    setDragged({ id: g.id, group })
+  }
+  const dropOn = (e, g, group) => {
+    e.preventDefault()
+    const sourceId = e.dataTransfer.getData('text/plain') || dragged?.id
+    if (dragged?.group === group && sourceId) reorder(group, sourceId, g.id)
+    setDragged(null)
+    setDragTarget(null)
+  }
   const pct = list.length ? Math.round((finished.length / list.length) * 100) : 0
   const rm = (g) => window.confirm(`Remover a meta "${g.title}"? Os registros anteriores continuam no mural.`) && run(() => goals.remove(g.id))
   const X = (g) => <button className="x" aria-label={`Remover meta ${g.title}`} title="Remover meta" onClick={() => rm(g)}>×</button>
   const Check = () => <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  const renderGoalItem = (g, group, items, index, children) => (
+    <li key={g.id} className={`goal ${group === 'todo' ? 'todo' : 'done'}${dragged?.id === g.id ? ' dragging' : ''}${dragTarget === g.id ? ' drag-over' : ''}`}
+      onDragOver={(e) => { e.preventDefault(); if (dragged?.group === group) setDragTarget(g.id) }}
+      onDrop={(e) => dropOn(e, g, group)}>
+      <div className="left">
+        <button type="button" className="goal-drag" draggable aria-label={`Arrastar meta ${g.title} para reordenar`} title="Arraste para reordenar"
+          onDragStart={(e) => startDrag(e, g, group)} onDragEnd={() => { setDragged(null); setDragTarget(null) }}>⠿</button>
+        {children}
+        <div className="t"><b>{g.title}</b>{group === 'done' && g.log?.note_title && <span className="muted small nt">· {g.log.note_title}</span>}{group === 'done' && <span className="muted small nt">· {fmtMin(g.log?.actual_minutes || 0)} de prática</span>}</div>
+      </div>
+      <div className="goal-actions">
+        <button type="button" className="goal-move" aria-label={`Mover "${g.title}" para cima`} title="Mover para cima" disabled={index === 0} onClick={() => moveBy(group, items, index, -1)}>↑</button>
+        <button type="button" className="goal-move" aria-label={`Mover "${g.title}" para baixo`} title="Mover para baixo" disabled={index === items.length - 1} onClick={() => moveBy(group, items, index, 1)}>↓</button>
+        {X(g)}
+      </div>
+    </li>
+  )
   return (
     <section className="card goals" aria-label="Metas">
       <div className="goals-head"><Ring pct={pct} /><div><h2>Metas</h2><span className="muted small">{list.length ? `${finished.length} de ${list.length} feitas hoje · ${pct}%` : 'Sem metas ainda'}</span></div></div>
       {list.length > 0 && <>
+        <p className="muted small goal-order-hint">Arraste pelo ícone de pontos ou use as setas para mudar a ordem.</p>
         <h3 className="todo-h">A fazer ({todo.length})</h3>
         {todo.length === 0 ? <p className="ok small">Tudo feito por hoje.</p> :
-          <ul className="list">{todo.map((g) => <li key={g.id} className="goal todo"><div className="left">
+          <ul className="list">{todo.map((g, index) => renderGoalItem(g, 'todo', todo, index,
             <button className="chk" aria-label={`Marcar "${g.title}" como feita`} title="Marcar como feita" onClick={() => { setNt(''); setNb(''); setSubj(null); setDurationHours('0'); setDurationMinutes('0'); setTimeErr(''); setAsk(g) }} />
-            <div className="t"><b>{g.title}</b></div></div>{X(g)}</li>)}</ul>}
+          ))}</ul>}
         {finished.length > 0 && <>
           <h3 className="todo-h">Concluídas ({finished.length})</h3>
-          <ul className="list">{finished.map((g) => { const log = logOf(g); return <li key={g.id} className="goal done"><div className="left">
+          <ul className="list">{finished.map((g, index) => { const log = logOf(g); return renderGoalItem({ ...g, log }, 'done', finished, index,
             <button className="chk" aria-label={`Desfazer "${g.title}"`} title="Desfazer" onClick={() => window.confirm('Desfazer este registro e apagar a anotação?') && run(async () => { await goals.undo(log.id); await notebook.unlink('goal_log', log.id) })}><Check /></button>
-            <div className="t"><b>{g.title}</b>{log.note_title && <span className="muted small nt">· {log.note_title}</span>}<span className="muted small nt">· {fmtMin(log.actual_minutes || 0)} de prática</span></div></div>{X(g)}</li> })}</ul></>}
+          ) })}</ul></>}
       </>}
       <form className="row addgoal" onSubmit={add}><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nova meta" aria-label="Nova meta" /><button className="ghost">Adicionar</button></form>
       {ask && <div className="overlay"><div className="dialog" role="dialog" aria-modal="true">
